@@ -1,0 +1,146 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+""" 
+Stack raw images taken with VLT/VISIR.
+A-B-B-A nodding is assumed in this script.
+"""
+from argparse import ArgumentParser as ap
+import os
+import numpy as np
+import astropy.io.fits as fits
+
+
+def cut4VISIR(image):
+    """
+    Cut useless pixels for clarity.
+    """
+    image = image[:, 25:875]
+    return image
+
+
+
+def main(args):
+    """This is the main function called by the `nodstack.py` script.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Arguments passed from the command-line as defined below.
+    """
+
+    sigma = 3
+    Vshift = None
+    if args.f_list:
+        fA_list, fB_list = [], []
+        for idx, f in enumerate(args.f_list):
+            # Assume A-B-B-A nodding 
+            if ((idx % 4) == 0) or (idx % 4 == 3): 
+                fA_list.append(f)
+            else:
+                fB_list.append(f)
+    else:
+        fA_list, fB_list = args.fA_list, args.fB_list
+
+    assert len(fA_list)==len(fB_list), "Check inputs."
+
+    fAstack_list, fBstack_list, substack_list = [], [], []
+    for idx_cycle, (fA, fB) in enumerate(zip(fA_list, fB_list)):
+        
+        hdu_A = fits.open(fA)
+        hdu_B = fits.open(fB)
+        N_hdu = len(hdu_A)
+        # For old data, N_hdu == 1.
+        # The hdu has 3-d image.
+        # For new data, N_hdu == 4.
+        # The hdu0 has header wo/ image.
+        # The hdu1 has a 2-d image (chop1).
+        # The hdu2 has a 2-d image (chop2).
+        # The hdu3 has a 2-d image (chop1 - chop2).
+
+        if hdu_A == 1:
+            hdr_A = hdu_A[0].header
+            image_A = hdu_A[0].data
+
+            hdr_B = hdu_B[0].header
+            image_B = hdu_B[0].data
+
+            # Stack chopping pair 1 and 2
+            image_A_c1 = np.sum(image_A[0::2,::,::], axis=0)
+            image_A_c2 = np.sum(image_A[1::2,::,::], axis=0)
+            # Subtract 
+            image_A_c12 = image_A_c1 = image_A_c2
+
+            # Stack chopping pair 1 and 2
+            image_B_c1 = np.sum(image_B[0::2,::,::], axis=0)
+            image_B_c2 = np.sum(image_B[1::2,::,::], axis=0)
+            # Subtract 
+            image_B_c12 = image_B_c1 = image_B_c2
+
+            ## Shift
+            #if args.vshift:
+            #    vx, vy = vshift
+            #    image_A = np.roll(image_A, vx*idx_cycle, axis=0)
+            #    image_A = np.roll(image_A, vy*idx_cycle, axis=1)
+            #    image_B = np.roll(image_B, vx*idx_cycle, axis=0)
+            #    image_B = np.roll(image_B, vy*idx_cycle, axis=1)
+
+        else:
+            hdr_A = hdu_A[0].header
+            image_A_c12 = hdu_A[3].data
+            image_A_c12 = cut4VISIR(image_A_c12)
+
+
+            hdr_B = hdu_B[0].header
+            image_B_c12 = hdu_B[3].data
+            image_B_c12 = cut4VISIR(image_B_c12)
+
+        # Subtract
+        image_sub = image_A_c12 - image_B_c12
+
+        # Save 
+        #fAstack_list.append(image_A_c12)
+        #fBstack_list.append(image_B_c12)
+        substack_list.append(image_sub)
+
+    # Stacking 
+    #imageA = np.sum(fAstack_list, axis=0)
+    #imageB = np.sum(fAstack_list, axis=0)    
+    imagesub = np.sum(substack_list, axis=0)
+
+    # Save
+    sta = fits.PrimaryHDU(data=imagesub, header=None)
+
+    # Add history
+    hdr = sta.header
+    #hdr.add_history(
+    #  f"[makeflat] header info. is inherited from {fits0}")
+    #for idx,d in enumerate(args.dark):
+    #    hdr.add_history(
+    #        f"[makeflat] dark frame {idx+1} : {os.path.basename(d)}")
+    #    hdr.add_history(
+    #        f"[makeflat] flat frame {idx+1} : {os.path.basename(fl)}")
+    hdr.add_history(
+        f"[nodstack] normalization : median")
+    sta.writeto(args.out, overwrite=True)
+
+
+if __name__ == "__main__":
+    parser = ap(description="Make a stacked image for VLT/VISIR.")
+    parser.add_argument(
+        "--f_list", type=str, nargs="*", default=None,
+        help="Images taken in A-B-B-A sequence")
+    parser.add_argument(
+        "--fA_list", type=str, nargs="*", default=None,
+        help="Images taken on nodding position A")
+    parser.add_argument(
+        "--fB_list", type=str, nargs="*", default=None,
+        help="Images taken on nodding position B")
+    parser.add_argument(
+        "--vshift", type=float, default=None,
+        help="Velocity of shift in pix/frame")
+    parser.add_argument(
+        "--out", type=str, default="stacksub.fits",
+        help="output fits file")
+    args = parser.parse_args()
+    
+    main(args)
