@@ -68,11 +68,24 @@ def main(args):
     f_list, ferr_list = [], []
     # Positive
     for xc, yc in zip(xposi_list, yposi_list):
+        
+        # Estimate background error per pix
+        bkg = sep.Background(img)
+        bgerr_rms = bkg.globalrms
+        #err = bg_rms*(3.14*rad**2)**0.5
+        #rad, rin, rout = 3, 9, 15
+        #gain = None
+        #flux, fluxerr, eflag = sep.sum_circle(
+        #        img, [xc], [yc], r=rad, err=10)
+        #print(f"fluxerr (sum_circle, wo/bkgann) {fluxerr[0]:.1f}")
+        #flux, fluxerr, eflag = sep.sum_circle(
+        #        img, [xc], [yc], r=rad, err=10, bkgann=(rin, rout))
+        #print(f"fluxerr (sum_circle, w/bkgann) {fluxerr[0]:.1f}")
+
         flux, fluxerr, eflag = sep.sum_circle(
-            img, [xc], [yc], r=rad, gain=gain, bkgann=(rin, rout))
+            img, [xc], [yc], r=rad, gain=gain, err=bgerr_rms, bkgann=(rin, rout))
         flux, fluxerr = float(flux), float(fluxerr)
-        print(f"    -> flux = {flux:.2f}+-{fluxerr:.2f}")
-        print(f"       S/N={flux/fluxerr:.1f})")
+        print(f"    -> flux = {flux:.2f}+-{fluxerr:.2f}, SNR={flux/fluxerr:.1f}")
         f_list.append(flux)
         ferr_list.append(fluxerr)
 
@@ -80,10 +93,9 @@ def main(args):
     img = -1 * img
     for xc, yc in zip(xnega_list, ynega_list):
         flux, fluxerr, eflag = sep.sum_circle(
-            img, [xc], [yc], r=rad, gain=gain, bkgann=(rin, rout))
+            img, [xc], [yc], r=rad, gain=gain, err=bgerr_rms, bkgann=(rin, rout))
         flux, fluxerr = float(flux), float(fluxerr)
-        print(f"    -> flux = {flux:.2f}+-{fluxerr:.2f}")
-        print(f"       S/N={flux/fluxerr:.1f})")
+        print(f"    -> flux = {flux:.2f}+-{fluxerr:.2f}, SNR={flux/fluxerr:.1f}")
         f_list.append(flux)
         ferr_list.append(fluxerr)
     img = -1 * img
