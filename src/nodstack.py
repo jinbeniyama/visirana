@@ -18,7 +18,6 @@ def cut4VISIR(image):
     return image
 
 
-
 def main(args):
     """This is the main function called by the `nodstack.py` script.
 
@@ -57,7 +56,7 @@ def main(args):
         # The hdu2 has a 2-d image (chop2).
         # The hdu3 has a 2-d image (chop1 - chop2).
 
-        if hdu_A == 1:
+        if len(hdu_A) == 1:
             hdr_A = hdu_A[0].header
             image_A = hdu_A[0].data
 
@@ -108,19 +107,23 @@ def main(args):
     imagesub = np.sum(substack_list, axis=0)
 
     # Save
-    sta = fits.PrimaryHDU(data=imagesub, header=None)
+    fits0 = fA_list[0]
+    hdu0 = fits.open(fits0)
+    hdr0 = hdu0[0].header
+    sta = fits.PrimaryHDU(data=imagesub, header=hdr0)
 
     # Add history
     hdr = sta.header
-    #hdr.add_history(
-    #  f"[makeflat] header info. is inherited from {fits0}")
-    #for idx,d in enumerate(args.dark):
-    #    hdr.add_history(
-    #        f"[makeflat] dark frame {idx+1} : {os.path.basename(d)}")
-    #    hdr.add_history(
-    #        f"[makeflat] flat frame {idx+1} : {os.path.basename(fl)}")
     hdr.add_history(
-        f"[nodstack] normalization : median")
+        f"[nodstack] header info. is inherited from {fits0}")
+    for idx, f in enumerate(fA_list):
+        hdr.add_history(
+            f"[nodstack] fits {idx+1} (nodding A) : {f}")
+    for idx, f in enumerate(fB_list):
+        hdr.add_history(
+            f"[nodstack] fits {idx+1} (nodding B) : {f}")
+    # Card 'ESO DET CHIP PXSPACE' is not FITS standard
+    del hdr['ESO DET CHIP PXSPACE']
     sta.writeto(args.out, overwrite=True)
 
 
