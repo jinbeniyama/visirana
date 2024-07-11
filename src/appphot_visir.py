@@ -15,17 +15,6 @@ from scipy.stats import sigmaclip
 import sep
 from myplot import mycolor, mymark
 from calcerror import adderr
-#from remove_background import remove_background2d
-#from movphot.photfunc import calc_FWHM_fits, create_saturation_mask
-#import matplotlib.pyplot as plt
-#import mpl_toolkits.axes_grid1
-#import movphot as mp
-#from scipy.stats import sigmaclip
-#%matplotlib inline
-#from polana.util import utc2alphaphi, remove_bg_2d, loc_Pirka
-
-
-
 
 
 def main(args):
@@ -65,7 +54,11 @@ def main(args):
     sigma = args.sigma
     
     kwd_gain = "HIERARCH ESO DET CHIP GAIN"
-    gain = hdr[kwd_gain]
+    if kwd_gain in hdr:
+        gain = hdr[kwd_gain]
+    else:
+        assert False, "Gain is unknown."
+
     # What is the gain for old fits? such as 2009?
     # gain = 1 (old fits, such as 2011)
     # gain = 20 (new fits, such as 2024)
