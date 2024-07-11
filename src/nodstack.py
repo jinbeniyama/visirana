@@ -130,6 +130,14 @@ def main(args):
     key_del = "ESO DET CHIP PXSPACE"
     if key_del in hdr:
         del hdr[key_del]
+
+    # For new fits
+    # Add gain from hdr1
+    hdr1 = hdu0[1].header
+    kwd_gain = "HIERARCH ESO DET CHIP GAIN"
+    gain = hdr1[kwd_gain]
+    hdr[kwd_gain] = gain
+
     sta.writeto(args.out, overwrite=True)
 
 
