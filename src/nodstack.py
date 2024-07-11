@@ -57,6 +57,8 @@ def main(args):
         # The hdu3 has a 2-d image (chop1 - chop2).
 
         if len(hdu_A) == 1:
+            if idx_cycle == 0:
+                print("Analyze old data w/stacking.")
             hdr_A = hdu_A[0].header
             image_A = hdu_A[0].data
 
@@ -84,6 +86,8 @@ def main(args):
             #    image_B = np.roll(image_B, vy*idx_cycle, axis=1)
 
         else:
+            if idx_cycle == 0:
+                print("Analyze new data wo/stacking.")
             hdr_A = hdu_A[0].header
             image_A_c12 = hdu_A[3].data
             image_A_c12 = cut4VISIR(image_A_c12)
@@ -123,7 +127,9 @@ def main(args):
         hdr.add_history(
             f"[nodstack] fits {idx+1} (nodding B) : {f}")
     # Card 'ESO DET CHIP PXSPACE' is not FITS standard
-    del hdr['ESO DET CHIP PXSPACE']
+    key_del = "ESO DET CHIP PXSPACE"
+    if key_del in hdr:
+        del hdr[key_del]
     sta.writeto(args.out, overwrite=True)
 
 
