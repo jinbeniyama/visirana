@@ -93,6 +93,11 @@ def phot_ann_stan(
         bkg = sep.Background(img)
         bgerr_pix = bkg.globalrms
 
+        # 2. Barycenter
+        # sigma*4 = 20 pix
+        sigma = 5
+        xwin, ywin, wflag = sep.winpos(img, xc, yc, sigma)
+
         # 2. Background error in aperture with local background subtraction with gain = None
         # TODO:
         #    i.e., reported error is simply (apreture area)**2 x bkgerr_pix
@@ -100,11 +105,11 @@ def phot_ann_stan(
         #          sum of (apreture area)**2 x bkgerr_pix and some error 
         #          even when gain is None......?
         _, fluxerr, _ = sep.sum_circle(
-            img, [xc], [yc], r=rad, err=bgerr_pix, gain=None)
+            img, [xwin], [ywin], r=rad, err=bgerr_pix, gain=None)
 
         # 3. Aperture flux with local background subtraction with gain=None
         flux, _, _ = sep.sum_circle(
-            img, [xc], [yc], r=rad, bkgann=(rin, rout), err=bgerr_pix, gain=None)
+            img, [xwin], [ywin], r=rad, bkgann=(rin, rout), err=bgerr_pix, gain=None)
         flux, fluxerr = float(flux), float(fluxerr)
         # 4. Do not add poisson error to measure the sensitivity
         print(f"    Flux {flux:.2f}+-{fluxerr:.2f}")
@@ -271,7 +276,7 @@ if __name__ == "__main__":
     # Plot limiting flux of SNR of snrlim
     snrlim = args.snrlim
     df_phot = ana_standard(
-        f1, f2, gain, pos_list, sign_list, rad_list, rin, rout, df_stan, snrlim, tlim, sigma_l=3, sigma_u=5, noshow=True)
+        f1, f2, gain, pos_list, sign_list, rad_list, rin, rout, df_stan, snrlim, tlim)
 
     # Output best values
     idx_max = df_phot["snr"].idxmax()
