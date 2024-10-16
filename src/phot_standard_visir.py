@@ -304,7 +304,7 @@ if __name__ == "__main__":
     print(f"    Best flux C2 = {flux_best:.1f} ADU")
     print(f"    Exp time  C3 = {texp_standard} s")
     coeff = flux_cat/flux_best*texp_standard
-    print(f"    Coeff C1/C2*C3   = {coeff:.2f} mJy ADU/s")
+    print(f"    Coeff C1/C2*C3   = {coeff:.4f} mJy s/ADU")
 
     
     # Plot growth curve
