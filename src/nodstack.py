@@ -130,14 +130,22 @@ def main(args):
     key_del = "ESO DET CHIP PXSPACE"
     if key_del in hdr:
         del hdr[key_del]
-
-    # For new fits
-    # Add gain from hdr1
-    hdr1 = hdu0[1].header
+    
+    # Check the keyword for GAIN
     kwd_gain = "HIERARCH ESO DET CHIP GAIN"
-    gain = hdr1[kwd_gain]
-    hdr[kwd_gain] = gain
-
+    if len(hdu_A) == 1:
+        if kwd_gain in hdr:
+            pass
+        else:
+            print("WARNING: No GAIN keyword was found.")
+            print("WARNING: Set GAIN as 1.")
+            hdr[kwd_gain] = 1.0
+    else:
+        # For new fits
+        # Add gain from hdr1
+        hdr1 = hdu0[1].header
+        gain = hdr1[kwd_gain]
+        hdr[kwd_gain] = gain
     sta.writeto(args.out, overwrite=True)
 
 
