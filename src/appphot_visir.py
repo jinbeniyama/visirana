@@ -17,6 +17,61 @@ from myplot import mycolor, mymark
 from calcerror import adderr
 
 
+def photann(img, xc, yc, rad, rin, rout, gain):
+    """
+
+    Parameters
+    ----------
+    img : array-like
+        2-d image
+    xc, yc : int 
+        central position of the target
+    rad : int
+        aperture radius
+    rin, rout : int
+        inner/outer edge of annulus
+    gain : float
+        inverse gain e/ADU
+
+    Returns
+    -------
+    flux, fluxerr : float
+        flux and its uncertainty
+    """
+    # 1. Estimate of background 'noise' using global image:
+    bkg = sep.Background(img)
+    bgerr_pix = bkg.globalrms
+
+    #err = bg_rms*(3.14*rad**2)**0.5
+    #rad, rin, rout = 3, 9, 15
+    #gain = None
+    #flux, fluxerr, eflag = sep.sum_circle(
+    #        img, [xc], [yc], r=rad, err=10)
+    #print(f"fluxerr (sum_circle, wo/bkgann) {fluxerr[0]:.1f}")
+    #flux, fluxerr, eflag = sep.sum_circle(
+    #        img, [xc], [yc], r=rad, err=10, bkgann=(rin, rout))
+    #print(f"fluxerr (sum_circle, w/bkgann) {fluxerr[0]:.1f}")
+
+    # 2. Background error in aperture with local background subtraction with gain = None
+    #    i.e., reported error is simply (apreture area)**2 x bkgerr_pix
+    #    Note: If you use sum_circle w/ bkgann, the reported error is 
+    #          sum of (apreture area)**2 x bkgerr_pix and some error 
+    #          even when gain is None......?
+    _, fluxerr, _ = sep.sum_circle(
+        img, [xc], [yc], r=rad, err=bgerr_pix, gain=None)
+
+    # 3. Aperture flux with local background subtraction with gain = None (or gain = gain)
+    flux, _, _ = sep.sum_circle(
+        img, [xc], [yc], r=rad, gain=None, err=bgerr_pix, bkgann=(rin, rout))
+    flux, fluxerr = float(flux), float(fluxerr)
+
+    # 4. Add poisson error of the target by hand
+    Perr_target = (flux*gain)**0.5/gain
+    fluxerr = (fluxerr**2 + Perr_target**2)**0.5
+
+    return flux, fluxerr
+
+
 def main(args):
     """This is the main function called by the `appphot_visir.py` script.
 
@@ -68,23 +123,7 @@ def main(args):
     f_list, ferr_list = [], []
     # Positive
     for xc, yc in zip(xposi_list, yposi_list):
-        
-        # Estimate background error per pix
-        bkg = sep.Background(img)
-        bgerr_rms = bkg.globalrms
-        #err = bg_rms*(3.14*rad**2)**0.5
-        #rad, rin, rout = 3, 9, 15
-        #gain = None
-        #flux, fluxerr, eflag = sep.sum_circle(
-        #        img, [xc], [yc], r=rad, err=10)
-        #print(f"fluxerr (sum_circle, wo/bkgann) {fluxerr[0]:.1f}")
-        #flux, fluxerr, eflag = sep.sum_circle(
-        #        img, [xc], [yc], r=rad, err=10, bkgann=(rin, rout))
-        #print(f"fluxerr (sum_circle, w/bkgann) {fluxerr[0]:.1f}")
-
-        flux, fluxerr, eflag = sep.sum_circle(
-            img, [xc], [yc], r=rad, gain=gain, err=bgerr_rms, bkgann=(rin, rout))
-        flux, fluxerr = float(flux), float(fluxerr)
+        flux, fluxerr = photann(img, xc, yc, rad, rin, rout, gain)
         print(f"    -> flux = {flux:.2f}+-{fluxerr:.2f}, SNR={flux/fluxerr:.1f}")
         f_list.append(flux)
         ferr_list.append(fluxerr)
@@ -92,12 +131,12 @@ def main(args):
     # Negative
     img = -1 * img
     for xc, yc in zip(xnega_list, ynega_list):
-        flux, fluxerr, eflag = sep.sum_circle(
-            img, [xc], [yc], r=rad, gain=gain, err=bgerr_rms, bkgann=(rin, rout))
-        flux, fluxerr = float(flux), float(fluxerr)
+        flux, fluxerr = photann(img, xc, yc, rad, rin, rout, gain)
         print(f"    -> flux = {flux:.2f}+-{fluxerr:.2f}, SNR={flux/fluxerr:.1f}")
         f_list.append(flux)
         ferr_list.append(fluxerr)
+    
+    # For visualization
     img = -1 * img
 
     # Average
