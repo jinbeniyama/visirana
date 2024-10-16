@@ -140,7 +140,12 @@ def ana_standard(
     Nexp_nod = hdu_hdr3["HIERARCH ESO DET FRAM NDIT"]
     # Exposure time per integration
     texp1 = hdu_hdr3["EXPTIME"]
+    # This is total exposure time for standard
     ttotal_standard = Nexp_nod*texp1*Nnod
+
+    # TODO: Check
+    key_ttotal = "HIERARCH ESO SEQ TIME "
+    ttotal_standard = hdu_hdr[key_ttotal]
 
     # Keyword to extract object like HD145897
     key_obj = "HIERARCH ESO OBS TARG NAME"
@@ -191,6 +196,7 @@ def ana_standard(
         })
     df["band"] = fltr
     df["fluxcat"] = flux_standard
+    df["texp"] = ttotal_standard
     return df
 
 
@@ -286,15 +292,19 @@ if __name__ == "__main__":
     fluxlim_min = df_phot["fluxlim"][idx_max]
     flux_best = df_phot["flux"][idx_max]
     flux_cat = df_phot["fluxcat"][idx_max]
+    texp_standard = df_phot["texp"][idx_max]
     band = df_phot["band"][idx_max]
     print("")
     print("Best values:")
-    print(f"    Band        = {band}")
-    print(f"    SNR         = {snr_max:.1f}")
-    print(f"    Radius      = {radius_max:.1f} pix")
-    print(f"    limflux     = {fluxlim_min:.2f} mJy (S/N={snrlim} {tlim} s)")
-    print(f"    Cat flux    = {flux_cat} mJy")
-    print(f"    Best flux   = {flux_best:.1f} ADU")
+    print(f"    Band         = {band}")
+    print(f"    SNR          = {snr_max:.1f}")
+    print(f"    Radius       = {radius_max:.1f} pix")
+    print(f"    limflux      = {fluxlim_min:.2f} mJy (S/N={snrlim} {tlim} s)")
+    print(f"    Cat flux  C1 = {flux_cat} mJy")
+    print(f"    Best flux C2 = {flux_best:.1f} ADU")
+    print(f"    Exp time  C3 = {texp_standard} s")
+    coeff = flux_cat/flux_best*texp_standard
+    print(f"    Coeff C1/C2*C3   = {coeff:.2f} mJy ADU/s")
 
     
     # Plot growth curve
