@@ -190,6 +190,7 @@ def ana_standard(
         "radius":rad_list,
         })
     df["band"] = fltr
+    df["fluxcat"] = flux_standard
     return df
 
 
@@ -283,13 +284,17 @@ if __name__ == "__main__":
     snr_max = df_phot["snr"][idx_max]
     radius_max = df_phot["radius"][idx_max]
     fluxlim_min = df_phot["fluxlim"][idx_max]
+    flux_best = df_phot["flux"][idx_max]
+    flux_cat = df_phot["fluxcat"][idx_max]
     band = df_phot["band"][idx_max]
     print("")
     print("Best values:")
-    print(f"    Band    = {band}")
-    print(f"    SNR     = {snr_max:.1f}")
-    print(f"    Radius  = {radius_max:.1f} pix")
-    print(f"    limflux = {fluxlim_min:.2f} mJy (S/N={snrlim} {tlim} s)")
+    print(f"    Band        = {band}")
+    print(f"    SNR         = {snr_max:.1f}")
+    print(f"    Radius      = {radius_max:.1f} pix")
+    print(f"    limflux     = {fluxlim_min:.2f} mJy (S/N={snrlim} {tlim} s)")
+    print(f"    Cat flux    = {flux_cat} mJy")
+    print(f"    Best flux   = {flux_best:.1f} ADU")
 
     
     # Plot growth curve
