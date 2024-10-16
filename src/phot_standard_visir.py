@@ -20,7 +20,7 @@ from visirana.visualization import plot_growth
 
     
 def phot_ann_stan(
-    f1_list, f2_list, pos_list, sign_list, rad, rnin, rout, gain, sigma_l=1, sigma_u=3, color="black", marker="o", noshow=False):
+    f1_list, f2_list, pos_list, sign_list, rad, rnin, rout, gain):
     """
     Poisson error is not included in the reported errors.
 
@@ -29,6 +29,9 @@ def phot_ann_stan(
     Return
     ------
     """
+    # TODO: 
+    # Median stacking?
+
     N1 = len(f1_list)
     N2 = len(f2_list)
     assert N1==N2, "Check arguments."
@@ -66,14 +69,11 @@ def phot_ann_stan(
         f2stack_list.append(image_2)
         substack_list.append(image_sub)
 
-    # TODO: 
-    # Median stacking?
     #imagesub = np.median(substack_list, axis=0) 
     # Stacking 
     imagesub = np.sum(substack_list, axis=0)
 
     stdsub = np.std(imagesub)
-    vminsub, vmaxsub = -sigma_l*stdsub, sigma_u*stdsub
 
     
     f_list, ferr_list = [], []
@@ -122,7 +122,7 @@ def phot_ann_stan(
 
 
 def ana_standard(
-    f1, f2, gain, pos_list, sign_list, rad_list, annin, annout, df_stan, SNR_lim, ttotal_lim, sigma_l=3, sigma_u=5, noshow=False):
+    f1, f2, gain, pos_list, sign_list, rad_list, annin, annout, df_stan, SNR_lim, ttotal_lim):
 
     # For standard
     Nnod = 2
@@ -158,8 +158,7 @@ def ana_standard(
     flux_list, fluxerr_list, SNR_list, flux_lim_list = [], [], [], []
     for radius in rad_list:
         flux, fluxerr  = phot_ann_stan(
-            [f1], [f2], pos_list, sign_list, radius, annin, annout, gain, 
-            sigma_l=sigma_l, sigma_u=sigma_u, noshow=noshow)
+            [f1], [f2], pos_list, sign_list, radius, annin, annout, gain)
         SNR_standard = flux/fluxerr
         
         # Sensitivity estimate
