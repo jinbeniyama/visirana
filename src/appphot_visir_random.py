@@ -54,7 +54,8 @@ def main(args):
             img_inv = -1 * img
             flux, _, _ = sep.sum_circle(
                 img, [xc], [yc], r=rad, bkgann=(rin, rout))
-
+            
+        flux = float(flux)
         print(f"    -> flux = {flux:.2f}")
         f_list.append(flux)
     # Do aperture photometry ==================================================
@@ -71,7 +72,7 @@ def main(args):
 
 
     # Plot and save ===========================================================
-    if args.outimage:
+    if args.out_image:
         fig = plt.figure(figsize=(10, 10))
         ax = fig.add_axes([0.15, 0.15, 0.8, 0.8])
         ax.set_xlabel("x [pix]")
