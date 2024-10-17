@@ -26,9 +26,18 @@ nodstack.py --fA_list (fits_nodA_1) (fits_nodA_2) --fB_list (fits_nodB_1) (fits_
 
 # Aperture photometry with local background subtraction using an annulus
 ## Just output the result and plot them
-appphot_visir.py (reduced.fits) --xy_posi 144 126 --xy_nega 144 189 144 63 --rad 7 --rin 9 --rout 11 --out_image (out_image.jpg)
+phot_visir.py (reduced.fits) --xy_posi 144 126 --xy_nega 144 189 144 63 --rad 7 --rin 9 --rout 11 --out_image (out_image.jpg)
 ## Save in a output file
-appphot_visir.py (reduced.fits) --xy_posi 144 126 --xy_nega 144 189 144 63 --rad 7 --rin 9 --rout 11 --out_image (out_image.jpg) --out_res (out_res.txt) --obj (star1) --band (band1)
+phot_visir.py (reduced.fits) --xy_posi 144 126 --xy_nega 144 189 144 63 --rad 7 --rin 9 --rout 11 --out_image (out_image.jpg) --out_res (out_res.txt) --obj (star1) --band (band1)
+
+# Calculate noise level from aperture photometry of standard star
+## Only for perpendicular nodding 1 and 2
+phot_standard_visir.py (fits_nod1) (fits_nod2) --tlim (exposure time to calculcate sensitivity) --pos  x1 y1 x2 y2 x3 y3 x4 y4 --sign -1 1 1 -1 --out (outputfile) --rad0 (inner radius in pix) --rad1 (maximum radius in pix)
+
+# Do photometry using random apertures 
+## Background noise is not saved. Annuli are used only to estimate background level
+phot_random_visir.py (fits) -N (Number of apertures) --rad (aperture radius) --rin (inner edge of annulus) --rout (outer edge of annulus) --out_photres (photometry result)
+
 ```
 
 
