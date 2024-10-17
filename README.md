@@ -4,7 +4,6 @@
 [developer mail](mailto:jinbeniyama@oca.eu)
 
 ## Overview
-
 Analysys of VLT/VISIR photometry of moving objects could be done in this repository.
 The icon is from https://www.eso.org/sci/facilities/paranal/instruments/visir.html.
 
@@ -17,23 +16,17 @@ git clone https://jin_beniyama@bitbucket.org/jin_beniyama/visirana.git
 ## Usage: imaging
 
 ```
-[usage]
-# Create database (once)
-psdb.py dbstart --first
-# Create new tables
-psdb.py create --table (table name)
-# Insert stars to database
-psdb.py insert --tablename (table name) --ra (ra in degree) --dec (dec in degree)
---radius (fov radius in degree) --magmin (minimum magnitude) --magmax (maximum magnitude)
-# Check stars in database
-psdb.py extract --tablename (table name) --ra (ra in degree) --dec (dec in degree)
---radius (fov radius in degree) --magmin (minimum magnitude) --magmax (maximum magnitude)
+# Do stacking: make positive and negative images
+## A-B-B-A nodding is assumed
+nodstack.py --f_list (fits_nodA_1) (fits_nodB_1) (fits_nodB_2) (fits_nodA_2) --out (reduced.fits)
+## Nodding pairs can specified.
+nodstack.py --fA_list (fits_nodA_1) (fits_nodA_2) --fB_list (fits_nodB_1) (fits_nodB_2) --out (reduced.fits)
 
-[example]
-# Create 2021DX1 table.
-# Observed locations are below.
-psdb.py create --table _2021DX1
-psdb.py insert --table _2021DX1 --ra 208.87 --dec 44.68 --radius 0.2 --magmin 12 --magmax 21
+# Aperture photometry with local background subtraction using an annulus
+## Just output the result and plot them
+appphot_visir.py (reduced.fits) --xy_posi 144 126 --xy_nega 144 189 144 63 --rad 7 --rin 9 --rout 11 --out_image (out_image.jpg)
+## Save in a output file
+appphot_visir.py (reduced.fits) --xy_posi 144 126 --xy_nega 144 189 144 63 --rad 7 --rin 9 --rout 11 --out_image (out_image.jpg) --out_res (out_res.txt) --obj (star1) --band (band1)
 ```
 
 
