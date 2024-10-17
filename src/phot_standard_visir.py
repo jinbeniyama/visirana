@@ -194,6 +194,7 @@ def ana_standard(
         "fluxlim":flux_lim_list,
         "radius":rad_list,
         })
+    df["obj"] = obj
     df["band"] = fltr
     df["fluxcat"] = flux_standard
     df["texp"] = ttotal_standard
@@ -294,8 +295,10 @@ if __name__ == "__main__":
     flux_cat = df_phot["fluxcat"][idx_max]
     texp_standard = df_phot["texp"][idx_max]
     band = df_phot["band"][idx_max]
+    obj = df_phot["obj"][idx_max]
     print("")
     print("Best values:")
+    print(f"    Objec        = {obj}")
     print(f"    Band         = {band}")
     print(f"    SNR          = {snr_max:.1f}")
     print(f"    Radius       = {radius_max:.1f} pix")
