@@ -231,4 +231,5 @@ if __name__ == "__main__":
         help="output image")
     args = parser.parse_args()
     
+    assert False, "Update photometry! (2024-10-17)"
     main(args)
