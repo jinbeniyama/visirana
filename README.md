@@ -6,6 +6,8 @@
 ## Overview
 Analysys of VLT/VISIR photometry of moving objects could be done in this repository.
 The icon is from https://www.eso.org/sci/facilities/paranal/instruments/visir.html.
+The official manual can be downloaded from the following link.
+https://ftp.eso.org/pub/dfs/pipelines/instruments/visir/visir-pipeline-manual-1.11.pdf
 
 
 ## Installing
