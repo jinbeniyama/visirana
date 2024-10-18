@@ -73,7 +73,7 @@ def main(args):
 
     # Plot and save ===========================================================
     if args.out_image:
-        fig = plt.figure(figsize=(10, 10))
+        fig = plt.figure(figsize=(8, 8))
         ax = fig.add_axes([0.15, 0.15, 0.8, 0.8])
         ax.set_xlabel("x [pix]")
         ax.set_ylabel("y [pix]")
@@ -81,24 +81,27 @@ def main(args):
         vmin, vmax = -sigma*stdsub, sigma*stdsub
 
         # Add apertures
-        color_1 = "black"
-        color_2 = "white"
-        ax.imshow(img, cmap='inferno', vmin=vmin, vmax=vmax)
+        if args.cmap == "Reds":
+            color_1 = "black"
+        else:
+            #color_1 = "white"
+            color_1 = "black"
+        ax.imshow(img, cmap=args.cmap, vmin=vmin, vmax=vmax)
 
         for xc, yc in zip(x_list, y_list):
             # radius
             ax.add_collection(PatchCollection(
                 [Circle((xc, yc), rad)], color=color_1, ls="solid",
-                lw=2, facecolor="None", label=None)
+                lw=1, facecolor="None", label=None)
                 )
             # annulus
             ax.add_collection(PatchCollection(
                 [Circle((xc, yc), rin)], color=color_1, ls="dashed",
-                lw=2, facecolor="None", label=None)
+                lw=1, facecolor="None", label=None)
                 )
             ax.add_collection(PatchCollection(
                 [Circle((xc, yc), rout)], color=color_1, ls="dotted",
-                lw=2, facecolor="None", label=None)
+                lw=1, facecolor="None", label=None)
                 )
 
         plt.savefig(args.out_image)
@@ -125,6 +128,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--out_photres", type=str, default="photres.txt",
         help="output file")
+    parser.add_argument(
+        "--cmap", type=str, default="Reds",
+        help="Color map")
     parser.add_argument(
         "--out_image", type=str, default=None,
         help="output image")
