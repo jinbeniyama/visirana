@@ -10,14 +10,6 @@ import numpy as np
 import astropy.io.fits as fits
 
 
-def cut4VISIR(image):
-    """
-    Cut useless pixels for clarity.
-    """
-    image = image[:, 25:875]
-    return image
-
-
 def main(args):
     """This is the main function called by the `nodstack.py` script.
 
