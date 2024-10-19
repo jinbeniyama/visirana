@@ -90,12 +90,14 @@ def main(args):
                 print("Analyze new data wo/stacking.")
             hdr_A = hdu_A[0].header
             image_A_c12 = hdu_A[3].data
-            image_A_c12 = cut4VISIR(image_A_c12)
+            if args.cut:
+                image_A_c12 = cut4VISIR(image_A_c12)
 
 
             hdr_B = hdu_B[0].header
             image_B_c12 = hdu_B[3].data
-            image_B_c12 = cut4VISIR(image_B_c12)
+            if args.cut:
+                image_B_c12 = cut4VISIR(image_B_c12)
 
         # Subtract
         image_sub = image_A_c12 - image_B_c12
@@ -160,6 +162,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--fB_list", type=str, nargs="*", default=None,
         help="Images taken on nodding position B")
+    parser.add_argument(
+        "--cut", action="store_true", default=False,
+        help="Cut useless pixels")
     parser.add_argument(
         "--vshift", type=float, default=None,
         help="Velocity of shift in pix/frame")
