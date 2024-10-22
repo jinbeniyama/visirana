@@ -11,21 +11,30 @@ import scipy.stats as stats
 
 
 def check_random(f, coeff, texp):
-    # Conversion factor from count to flux density
-    # C_target = A*F_target
-    #texp_target = 1017
-    # A = C_standard * texp_standard/texp_target / F_standard
-    # HD145897 on 2024-05-26, B10.7
-    # flux density of the star in mJy
-    #F_standard  = 6.0774e3
-    # exposure time of the star in s
-    #texp_standard = 120
-    #C_standard = 65773.93
-    #df["fluxdensity"] = df["flux"] / C_standard / texp_target * texp_standard * F_standard
+    """
+    Calculate flux density with conversion factor.
+
+    Parameters
+    ----------
+    f : str
+        filename
+    coeff : float
+        conversion factor in Jy/(ADU s^-1)
+    texp : float
+        exposure time in s
+
+    Return
+    ------
+    df : pandas.DataFrame
+        dataframe with flux density
+    """
+    # Conversion factor from count to flux density, coeff [Jy/(ADU s^-1)]
+    # i.e.,
+    # F_target = coeff*C_target
 
     df = pd.read_csv(f, sep=" ")
-
-    df["fluxdensity"] = df["flux"] / texp * coeff
+    # Flux [Jy]  = coeff [Jy/(ADU s^-1)]  * Count [AUD] / time
+    df["fluxdensity"] = coeff * (df["flux"] / texp)
     # mJy
     df["fluxdensity"] *= 1000
     return df
