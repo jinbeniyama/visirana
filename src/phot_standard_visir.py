@@ -303,11 +303,11 @@ if __name__ == "__main__":
     print(f"    SNR          = {snr_max:.1f}")
     print(f"    Radius       = {radius_max:.1f} pix")
     print(f"    limflux      = {fluxlim_min:.2f} mJy (S/N={snrlim} {tlim} s)")
-    print(f"    Cat flux  C1 = {flux_cat} mJy")
+    print(f"    Cat flux  C1 = {flux_cat} Jy")
     print(f"    Best flux C2 = {flux_best:.1f} ADU")
     print(f"    Exp time  C3 = {texp_standard} s")
-    coeff = flux_cat/flux_best/texp_standard
-    print(f"    Coeff C1/C2/C3   = {coeff:.4f} Jy/s/ADU")
+    coeff = flux_cat/(flux_best/texp_standard)
+    print(f"    Coeff C1/(C2/C3)   = {coeff:.4f} Jy/(ADU s^-1)")
 
     
     # Plot growth curve
