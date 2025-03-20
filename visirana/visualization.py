@@ -1,6 +1,27 @@
 import matplotlib.pyplot as plt
 
 
+
+mycolor = [
+    # red
+    "#AD002D", 
+    # blue
+    "#1e50a2", 
+    # green
+    "#69821b", 
+    # orange
+    #"#ec6800", 
+    # purple
+    "#f055f0", 
+    # gray
+    "#afafb0", 
+    "#0095b9", 
+    "#89c3eb"] 
+
+# linestyle
+myls = ["solid", "dashed", "dashdot", "dotted", (0, (5, 3, 1, 3, 1, 3)), 
+        (0, (4,2,1,2,1,2,1,2))]
+
 def plot_growth(df, t_lim, snr_lim, out):
     """
     Plot growth curve
