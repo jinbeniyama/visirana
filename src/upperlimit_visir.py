@@ -50,7 +50,10 @@ if __name__ == "__main__":
         help="On source exposure time")
     parser.add_argument(
         "--coeff", type=float, 
-        help="Coefficient mJy s/ADU, output of phot_standard_visir.py")
+        help="Coefficient Jy/(ADU s^-1), output of phot_standard_visir.py")
+    parser.add_argument(
+        "--nbin", type=int, default=30, 
+        help="Number of bins of histogram")
     parser.add_argument(
         "--out", type=str, default=None,
         help="output image")
@@ -66,7 +69,7 @@ if __name__ == "__main__":
 
     # TODO: Check
     # Only positive?
-    df = df[df["flux"] > 0]
+    #df = df[df["flux"] > 0]
     Npos = len(df)
     print(f"N all           = {N0}")
     print(f"N positive flux = {Npos}")
@@ -75,6 +78,7 @@ if __name__ == "__main__":
     print(f"  Maximum flux density {f_max:.1f} mJy")
 
     # Median, 1, 2, 3 sigma
+    # TODO Check
     percentage = [67, 90, 99.7]
     for p in percentage:
         fluxdensity_sigma = stats.scoreatpercentile(df["fluxdensity"], p)
@@ -82,24 +86,28 @@ if __name__ == "__main__":
 
     # Make histogram
     if args.out:
-        Nbin = 30
+        Nbin = args.nbin
 
-        fig = plt.figure(figsize=(12, 6))
+        fig = plt.figure(figsize=(8, 6))
         
-        ax2 = fig.add_axes([0.15, 0.15, 0.30, 0.8])
-        ax2.set_xlabel("flux [ADU]")
-        ax2.set_ylabel("N")
-        ax2.hist(df["flux"], bins=Nbin, histtype="step")
+        #ax2 = fig.add_axes([0.15, 0.15, 0.30, 0.8])
+        #ax2.set_xlabel("Flux [ADU]")
+        #ax2.set_ylabel("N")
+        #ax2.hist(df["flux"], bins=Nbin, histtype="step")
         
-        ax3 = fig.add_axes([0.65, 0.15, 0.30, 0.8])
-        ax3.set_xlabel("flux density [mJy]")
-        ax3.set_ylabel("N")
-        ax3.hist(df["fluxdensity"], bins=Nbin, histtype="step", label=label)
-        ymin3, ymax3 = ax3.get_ylim()
-        ax3.vlines(fluxdensity_sigma, ymin3, ymax3, color="red", ls="dashed", 
-            label=f"3-sigma {fluxdensity_sigma:.1f} mJy")
-        ax3.set_ylim(ymin3, ymax3)
-        ax2.legend()
-        ax3.legend()
+        ax = fig.add_axes([0.15, 0.15, 0.8, 0.8])
+        ax.set_xlabel("Flux density [mJy]")
+        ax.set_ylabel("N")
+        label = f"N={len(df)}\n Maximum: {f_max:.2f} mJy"
+        col = "black"
+        ax.hist(
+            df["fluxdensity"], bins=Nbin, color=col, histtype="step", label=label)
+        xmin, xmax = ax.get_xlim()
+        vmax = np.max([abs(xmin), abs(xmax)])
+        ax.set_xlim([-vmax, vmax])
+        #ax.vlines(
+        #    fluxdensity_sigma, ymin, ymax, color="red", ls="dashed", 
+        #    label=f"3-sigma {fluxdensity_sigma:.1f} mJy")
+        ax.legend()
         
         plt.savefig(args.out)
