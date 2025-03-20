@@ -21,6 +21,8 @@ mycolor = [
 # linestyle
 myls = ["solid", "dashed", "dashdot", "dotted", (0, (5, 3, 1, 3, 1, 3)), 
         (0, (4,2,1,2,1,2,1,2))]
+# marker
+mymark = ["o", "^", "s", "D", "*", "v", "<", ">", "h"]
 
 def plot_growth(df, t_lim, snr_lim, out):
     """
