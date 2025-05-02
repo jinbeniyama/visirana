@@ -5,9 +5,6 @@
 
 ## Overview
 Analysys of VLT/VISIR photometry of moving objects could be done in this repository.
-
-The icon is from [here](https://www.eso.org/sci/facilities/paranal/instruments/visir.html).
-
 The official manual can be downloaded from [here](https://ftp.eso.org/pub/dfs/pipelines/instruments/visir/visir-pipeline-manual-1.11.pdf).
 
 
@@ -38,7 +35,6 @@ phot_standard_visir.py (fits_nod1) (fits_nod2) --tlim (exposure time to calculca
 # Do photometry using random apertures 
 ## Background noise is not saved. Annuli are used only to estimate background level
 phot_random_visir.py (fits) -N (Number of apertures) --rad (aperture radius) --rin (inner edge of annulus) --rout (outer edge of annulus) --out_photres (photometry result)
-
 ```
 
 
