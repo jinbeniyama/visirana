@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-""" 
-Stack raw images taken with VLT/VISIR.
-A-B-B-A nodding is assumed in this script.
+""" Stack raw images taken with VLT/VISIR.
+
+ABAB or ABBA nodding can be specified.
 """
 from argparse import ArgumentParser as ap
 import os
