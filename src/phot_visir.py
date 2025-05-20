@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-""" 
-Do aperture photometry for stacked fits taken with VLT/VISIR.
+""" Do aperture photometry for stacked fits taken with VLT/VISIR.
+
+TODO: Check photometry.
 """
 from argparse import ArgumentParser as ap
 import os
@@ -143,7 +144,7 @@ def main(args):
     f_ave = np.sum(f_list)
     ferr_ave = adderr(ferr_list)
     SNR_ave = f_ave/ferr_ave
-    print(f"  Averaged flux: {f_ave:.2f}+-{ferr_ave:.2f} (S/N={SNR_ave:.1f})")
+    print(f"  Sum of fluxes: {f_ave:.2f}+-{ferr_ave:.2f} (S/N={SNR_ave:.1f})")
     # Do aperture photometry ==================================================
 
     # Plot
@@ -231,5 +232,4 @@ if __name__ == "__main__":
         help="output image")
     args = parser.parse_args()
     
-    assert False, "Update photometry! (2024-10-17)"
     main(args)
