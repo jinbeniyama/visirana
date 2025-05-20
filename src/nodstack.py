@@ -24,11 +24,18 @@ def main(args):
     if args.f_list:
         fA_list, fB_list = [], []
         for idx, f in enumerate(args.f_list):
-            # Assume A-B-B-A nodding 
-            if ((idx % 4) == 0) or (idx % 4 == 3): 
-                fA_list.append(f)
-            else:
-                fB_list.append(f)
+            # A-B-B-A nodding 
+            if args.nodtype == "ABBA":
+                if ((idx % 4) == 0) or (idx % 4 == 3): 
+                    fA_list.append(f)
+                else:
+                    fB_list.append(f)
+            # A-B-A-B nodding 
+            if args.nodtype == "ABAB":
+                if ((idx % 2) == 0): 
+                    fA_list.append(f)
+                else:
+                    fB_list.append(f)
     else:
         fA_list, fB_list = args.fA_list, args.fB_list
 
@@ -146,8 +153,11 @@ def main(args):
 if __name__ == "__main__":
     parser = ap(description="Make a stacked image for VLT/VISIR.")
     parser.add_argument(
+        "nodtype", type=str,
+        help="ABBA or ABAB")
+    parser.add_argument(
         "--f_list", type=str, nargs="*", default=None,
-        help="Images taken in A-B-B-A sequence")
+        help="Images taken in ABBA or ABAB sequence")
     parser.add_argument(
         "--fA_list", type=str, nargs="*", default=None,
         help="Images taken on nodding position A")
