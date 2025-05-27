@@ -11,7 +11,9 @@ import os
 import sys
 import astropy.io.fits as fits
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import numpy as np
+import pandas as pd
 from astropy.modeling.polynomial import Polynomial1D
 from astropy.modeling.fitting import LinearLSQFitter
 from myplot import mycolor
@@ -167,6 +169,7 @@ def extract_effective_spec(
                 print("Invalid input. Exiting.")
                 break
             plt.close()
+        plt.close()
 
         return xeff, yeff, yfit
 
@@ -215,6 +218,7 @@ def extract_effective_spec(
                 print("Invalid input. Exiting.")
                 break
             plt.close()
+        plt.close()
         
         # This is mandatory since the image is cut above
         xeff = [x+xmin for x in xv]
@@ -233,25 +237,162 @@ def main(args):
         Arguments passed from the command-line as defined below.
     """
 
+    fi   = args.fi
+    mode = args.mode
+
     # Extract effective spectrum with fitting
+    # TODO: Remove args.mode from input arguments and plot both?
     xv, yv, yfit = extract_effective_spec(
-        args.fi, args.mode, 
+        fi, mode, 
         xmin=args.xmin, xmax=args.xmax, 
         ymin=args.ymin, ymax=args.ymax
         )
 
+    # Plot two results on the images
+    # Choose spectrum (method)
+    # Save spectrum
+    # x, ADU
+
+    hdu = fits.open(fi)
+    img = hdu[0].data
+    ny, nx = img.shape
+    
+    if args.xr:
+        x0, x1 = args.xr
+    else:
+        x0, x1 = 0, nx
+    if args.yr:
+        y0, y1 = args.yr
+    else:
+        y0, y1 = 0, ny
+    if args.vr:
+        v0, v1 = args.vr
+    else:
+        v0, v1 = 0, 100
+    
+    #fig = plt.figure(figsize=(30, 4))
+    #ax1 = fig.add_axes([0.05, 0.1, 0.17, 0.8])
+    #ax2 = fig.add_axes([0.24, 0.1, 0.17, 0.8])
+    #ax3 = fig.add_axes([0.43, 0.1, 0.17, 0.8])
+    #ax4 = fig.add_axes([0.62, 0.1, 0.17, 0.8])
+    #ax5 = fig.add_axes([0.81, 0.1, 0.17, 0.8])
+    #
+    #for ax in [ax1, ax2, ax3, ax4, ax5]:
+    #    ax.set_xlabel("x [pixel]")
+    #ax1.set_ylabel("y [pixel]")
+    #
+    #for ax in [ax1, ax2]:
+    #    ax.imshow(img, vmin=v0, vmax=v1)
+    #    ax.scatter(
+    #        xv, yfit, color="red", marker="x", s=1, label=f"Fit ({mode})")
+    #    ax.legend().get_frame().set_alpha(1.0)
+    #
+    ## Change aspect
+    #ax2.set(aspect=5)
+    #ax2.set_xlim([x0, x1])
+    #ax2.set_ylim([y0, y1])
+    #
+    ## Photometry region
+    #N_phot = args.N_phot
+    #yl = [y - N_phot for y in yfit]
+    #yu = [y + N_phot for y in yfit]
+    #ax.fill_between(
+    #    xv, yl, yu, color='orange', alpha=0.5)
+    #
+    ## start by taking +/- Npix pixels
+    #cutouts = np.array([img[int(yv)-N_phot:int(yv)+N_phot, ii]
+    #                    for yv, ii in zip(yfit, xv)])
+    #ax3.imshow(cutouts.T)
+    #ax3.set_aspect(10)
+    #
+    #mean_trace_profile = (cutouts).mean(axis=0)
+    #trace_profile_xaxis = np.arange(-N_phot, N_phot)
+    #ax4.plot(trace_profile_xaxis, mean_trace_profile)
+    #ax4.set_xlabel("Distance from center")
+    #ax4.set_ylabel("Average source profile")
+    #average_spectrum = (cutouts).mean(axis=1)
+    #ax5.plot(average_spectrum)
+    #plt.show()
+    #plt.close()
+
+    fig = plt.figure(figsize=(16, 12))
+    gs = gridspec.GridSpec(3, 2, height_ratios=[1, 1, 1.2])
+    
+    # Panel 1: Original image + fit
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax1.imshow(img, vmin=v0, vmax=v1)
+    ax1.scatter(xv, yfit, color="red", marker="x", s=1, label=f"Fit ({mode})")
+    ax1.set_xlabel("x [pixel]")
+    ax1.set_ylabel("y [pixel]")
+    ax1.legend(framealpha=1.0)
+    ax1.set_title("Original image with fit")
+    
+    # Panel 2: Zoomed fit with aspect ratio
+    ax2 = fig.add_subplot(gs[0, 1])
+    ax2.imshow(img, vmin=v0, vmax=v1)
+    ax2.scatter(xv, yfit, color="red", marker="x", s=1, label=f"Fit ({mode})")
+    ax2.set(aspect=5)
+    ax2.set_xlim([x0, x1])
+    ax2.set_ylim([y0, y1])
+    yl = [y - args.N_phot for y in yfit]
+    yu = [y + args.N_phot for y in yfit]
+    ax2.fill_between(xv, yl, yu, color='orange', alpha=0.5)
+    ax2.set_xlabel("x [pixel]")
+    ax2.legend(framealpha=1.0)
+    ax2.set_title("Zoomed region with photometry area")
+    
+    # Panel 3: Cutouts stack
+    ax3 = fig.add_subplot(gs[1, :])
+    cutouts = np.array([img[int(yv)-args.N_phot:int(yv)+args.N_phot, ii]
+                        for yv, ii in zip(yfit, xv)])
+    ax3.imshow(cutouts.T, aspect='auto', cmap='gray')
+    ax3.set_xlabel("x [pixel]")
+    ax3.set_ylabel("y from the center [pixel]")
+    ax3.set_title("After correction")
+    
+    # Panel 4: Average source profile
+    ax4 = fig.add_subplot(gs[2, 0])
+    mean_trace_profile = cutouts.mean(axis=0)
+    trace_profile_xaxis = np.arange(-args.N_phot, args.N_phot)
+    ax4.plot(trace_profile_xaxis, mean_trace_profile)
+    ax4.set_xlabel("Distance from center")
+    ax4.set_ylabel("Average flux [ADU]")
+    ax4.set_title("Average trace profile")
+    
+    # Panel 5: Spectrum
+    ax5 = fig.add_subplot(gs[2, 1])
+    average_spectrum = cutouts.mean(axis=1)
+    ax5.plot(average_spectrum)
+    ax5.set_xlabel("x [pixel]")
+    ax5.set_ylabel("Average flux [ADU]")
+    ax5.set_title("Extracted spectrum")
+    
+    plt.tight_layout()
+    plt.show(block=False)
+
+    ans = input("Output spectrum? (y/n): ").strip().lower()
+    if ans != 'y':
+        plt.close()
+    try:
+        out = args.out_specres
+        df = pd.DataFrame(
+            {"x":xv, "flux":average_spectrum})
+        # Save 
+        df.to_csv(out, sep=" ", index=False)
+
+    except ValueError:
+        print("Not saved. Exiting.")
+    plt.close()
+
 
 if __name__ == "__main__":
-    parser = ap(description="Make a stacked image for VLT/VISIR.")
+    parser = ap(description="Extract 1-d spectrum from VISIR spectroscopy data.")
     parser.add_argument(
         "fi", type=str,
         help="Fits to be analyzed.")
     parser.add_argument(
         "mode", type=str,
         help="argmax or moment")
-    parser.add_argument(
-        "--show", action="store_true",
-        help="Only show results")
     parser.add_argument(
         "--xmin", type=int, default=None,
         help="Minimum x value")
@@ -268,14 +409,20 @@ if __name__ == "__main__":
         "--fit_degree", type=int, default=2,
         help="Degree of polynomial")
     parser.add_argument(
+        "--xr", type=int, nargs=2, default=None,
+        help="x range of the figure")
+    parser.add_argument(
+        "--yr", type=int, nargs=2, default=None,
+        help="y range of the figure")
+    parser.add_argument(
+        "--vr", type=int, nargs=2, default=None,
+        help="value range of the figure")
+    parser.add_argument(
         "--N_phot", type=int, default=10,
         help="Photometry radius in pix.")
     parser.add_argument(
         "--out_specres", type=str, default="specres.txt",
         help="output file")
-    #parser.add_argument(
-    #    "--out_image", type=str, default="photres.jpg",
-    #    help="output image")
     args = parser.parse_args()
     
     main(args)
