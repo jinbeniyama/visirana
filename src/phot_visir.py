@@ -152,7 +152,16 @@ def main(args):
     ax = fig.add_axes([0.15, 0.15, 0.8, 0.8])
     ax.set_xlabel("x [pix]")
     ax.set_ylabel("y [pix]")
-    stdsub = np.std(img)
+
+    # Cut (assuming perpendicular chop/nod) 
+    xave = np.mean(xposi_list)
+    yave = np.mean(yposi_list)
+
+    x0, x1 = int(xave - args.imgsize*0.5), int(xave + args.imgsize*0.5)
+    y0, y1 = int(yave - args.imgsize*0.5), int(yave + args.imgsize*0.5)
+
+    img_cut = img[y0:y1, x0:x1]
+    stdsub = np.std(img_cut)
     vmin, vmax = -sigma*stdsub, sigma*stdsub
 
     # Add apertures
@@ -191,7 +200,9 @@ def main(args):
             [Circle((xc, yc), rout)], color=color_2, ls="dotted",
             lw=2, facecolor="None", label=None)
             )
-
+    
+    ax.set_xlim([x0, x1])
+    ax.set_ylim([y0, y1])
     plt.savefig(args.out_image)
 
 
@@ -225,8 +236,11 @@ if __name__ == "__main__":
         "--out_photres", type=str, default="photres.txt",
         help="output file")
     parser.add_argument(
-        "--sigma", type=int, default=3,
+        "--sigma", type=int, default=10,
         help="Dynamic range of the image")
+    parser.add_argument(
+        "--imgsize", type=int, default=300,
+        help="Width and height of output image")
     parser.add_argument(
         "--out_image", type=str, default="photres.jpg",
         help="output image")
