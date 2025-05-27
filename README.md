@@ -55,6 +55,10 @@ spec_visir.py (fits after stacking) argmax
 spec_visir.py (fits after stacking) moment
 ```
 
+### Wavelength calibration (for spectroscopy)
+In prep.
+
+
 ## Dependencies
 
 This library is depending on `NumPy`, `SciPy`, `SEP`, `Astropy` 
