@@ -74,7 +74,7 @@ def photann(img, xc, yc, rad, rin, rout, gain):
 
 
 def main(args):
-    """This is the main function called by the `appphot_visir.py` script.
+    """This is the main function called by the `phot_visir.py` script.
 
     Parameters
     ----------
@@ -206,11 +206,8 @@ def main(args):
     plt.savefig(args.out_image)
 
 
-
-    
-
 if __name__ == "__main__":
-    parser = ap(description="Make a stacked image for VLT/VISIR.")
+    parser = ap(description="Do aperture photometry.")
     parser.add_argument(
         "fi", type=str,
         help="Fits to be analyzed.")
