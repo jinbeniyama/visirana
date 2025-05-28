@@ -38,7 +38,7 @@ def extract_qe_template(fi):
 
 
 if __name__ == "__main__":
-    parser = ap(description="Plot PSF.")
+    parser = ap(description="Plot quantum efficiency.")
     parser.add_argument(
         "fi", type=str,
         help="Fits to be analyzed.")
