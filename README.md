@@ -58,6 +58,20 @@ spec_visir.py (fits after stacking) moment
 ### Wavelength calibration (for spectroscopy)
 In prep.
 
+### Wavelength calibration (for spectroscopy)
+You can check atmospheric emission spectrum, quantum efficiency, and model flux of standard star as follows.
+``` 
+# Atmospheric emission
+plot_skyemission.py (fits usually M.VISIR.YYYY-MM-DD...)
+```
+``` 
+# Quantum efficiency
+plot_QE.py (fits usually M.VISIR.YYYY-MM-DD...)
+```
+``` 
+# Model flux of object of interest
+plot_QE.py (fits usually M.VISIR.YYYY-MM-DD...) (object of interest)
+```
 
 ## Dependencies
 
