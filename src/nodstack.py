@@ -24,14 +24,30 @@ def main(args):
     if args.f_list:
         fA_list, fB_list = [], []
         for idx, f in enumerate(args.f_list):
-            # A-B-B-A nodding 
-            if args.nodtype == "ABBA":
+            
+            # AB (for 2 fits)
+            if args.nodtype == "AB":
+                if ((idx % 2) == 0): 
+                    fA_list.append(f)
+                else:
+                    fB_list.append(f)
+
+            # BA (for 2 fits)
+            elif args.nodtype == "BA":
+                if ((idx % 2) == 1): 
+                    fA_list.append(f)
+                else:
+                    fB_list.append(f)
+
+            # ABBA nodding 
+            elif args.nodtype == "ABBA":
                 if ((idx % 4) == 0) or (idx % 4 == 3): 
                     fA_list.append(f)
                 else:
                     fB_list.append(f)
-            # A-B-A-B nodding 
-            if args.nodtype == "ABAB":
+
+            # ABAB nodding 
+            elif args.nodtype == "ABAB":
                 if ((idx % 2) == 0): 
                     fA_list.append(f)
                 else:
