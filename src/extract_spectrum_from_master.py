@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt  
 import astropy.io.fits as fits
+from astropy.modeling.polynomial import Polynomial1D
+from astropy.modeling.fitting import LinearLSQFitter
 
 
 def extract_1dspec(fi):
@@ -22,32 +24,218 @@ def extract_1dspec(fi):
     Return
     ------
     df : pandas.DataFrame
-        dataframe with wavelength and efficiency
+        dataframe with wavelength [micron] and efficiency
     """
     hdu = fits.open(fi)
     N_hdu = len(hdu)
     hdu1 = hdu[1]
+    obj = hdu[0].header["OBJECT"]
     # hdu1: 1024 1D spectrum
     # hdu2: image 1024 x 512
     # hdu3: image 1024 x 512
-    
-    # hdu1
-    # 0: wavelength [m]
-    # 1: spec model PH        [J*radian/m^3/s]
-    # 2: spec model XC        [J*radian/m^3/s] 
-    # 3: spec sky             [ADU/s]
-    # 4: spec extracted       [ADU/s]
-    # 5: spec extracted error [ADU/s]
-    # 6: standard star model  [mJy]
-    # 7: sensitivity          [mJy]
-    data = hdu1.data
-    arr = np.array(data, dtype=[
-        ("w_m", "f8"), ("specmodel_PH", "f8"), ("specmodel_XC", "f8"),
-        ("flux_sky", "f8"), ("flux", "f8"), ("fluxerr", "f8"),
-        ("flux_model", "f8"), ("sensitivity", "f8"), 
-        ])
+
+    # Structure of the table depends on the object type (STD or not) 
+    if obj.strip() == "STD":
+        # hdu1
+        # 0: wavelength [m]
+        # 1: spec model PH        [J*radian/m^3/s]
+        # 2: spec model XC        [J*radian/m^3/s] 
+        # 3: spec sky             [ADU/s]
+        # 4: spec extracted       [ADU/s]
+        # 5: spec extracted error [ADU/s]
+        # 6: standard star model  [mJy]
+        # 7: sensitivity          [mJy]
+        data = hdu1.data
+        arr = np.array(data, dtype=[
+            ("w_m", "f8"), ("specmodel_PH", "f8"), ("specmodel_XC", "f8"),
+            ("flux_sky", "f8"), ("flux", "f8"), ("fluxerr", "f8"),
+            ("flux_model", "f8"), ("sensitivity", "f8"), 
+            ])
+    else:
+        # hdu1
+        # 0: wavelength [m]
+        # 1: spec model PH        [J*radian/m^3/s]
+        # 2: spec model XC        [J*radian/m^3/s] 
+        # 3: spec sky             [ADU/s]
+        # 4: spec extracted       [ADU/s]
+        # 5: spec extracted error [ADU/s]
+        # 6: calibrated flux      [mJy] (not Jy, VISIR manual 1.11 is wrong)
+        # 7: flux err             [mJy] (not Jy, VISIR manual 1.11 is wrong)
+        data = hdu1.data
+        arr = np.array(data, dtype=[
+            ("w_m", "f8"), ("specmodel_PH", "f8"), ("specmodel_XC", "f8"),
+            ("flux_sky", "f8"), ("flux", "f8"), ("fluxerr", "f8"),
+            ("flux_cor", "f8"), ("fluxerr_cor", "f8"), 
+            ])
+
     df = pd.DataFrame(arr)
+
+    ## Convert [m] to [micron]
+    df["w"] = df["w_m"]*1e6
+
     return df
+
+
+def plot_spectrum(
+        df_obj, df_S, df_phot=None, w_fit_range=(7, 13), fit_degree=3, full=True, out=None):
+    """Plot extracted spectrum.
+
+    Parameters
+    ----------
+    df_obj : pandas.DataFrame
+        dataframe of object of interest
+    df_S : pandas.DataFrame
+        dataframe of standard star
+    df_phot : pandas.DataFrame, optional
+        photometric results of object of interest
+    w_fit_range : array-like
+        wavelength to be used for the fitting
+    fit_degree : int
+        degree of polynomial
+    full : bool
+        if plot all figures or not
+    out : str, optional
+        output filename
+    """
+    columns = [
+        ("flux", "Calibrated Flux", "black", "-"),   
+        ("flux_sky", "Sky Background", "blue", "-"),    
+        ("dummy", "", "gray", "-"), 
+    ]
+
+    # Plot shade on telluric features
+    #   wmin, wmax, label
+    telluric_features = [
+        (9.2, 10.1, "Ozone"),
+    ]
+
+    def add_telluric_shading(ax):
+        for w_min, w_max, label in telluric_features:
+            ax.axvspan(w_min, w_max, color='gray', alpha=0.3, label=label)
+
+    if full:
+        nrows = 3  # 0:flux, 1:sky, 2:corrected
+        fig, axes = plt.subplots(nrows=nrows, ncols=2, figsize=(14, 7), sharex=True)
+    else:
+        fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12, 6), sharex=True)
+
+    dfs = [df_obj, df_S]
+    ylabels = ["ADU/s", "Sky", "Corrected Flux"] if full else ["ADU/s", "Corrected Flux"]
+
+    if full:
+        for col_idx, df in enumerate(dfs):
+            for row_idx, (col, title, color, ls) in enumerate(columns):
+                if row_idx > 2:
+                    continue  # row_idx: 0=flux, 1=sky, 2=corrected
+                ax = axes[row_idx, col_idx]
+                if isinstance(col, tuple):
+                    for c, t, clr, style in zip(col, title, color, ls):
+                        if c == "flux_model" or c not in df.columns:
+                            continue
+                        ax.plot(df["w"], df[c], label=t, lw=1, color=clr, linestyle=style)
+                else:
+                    if col == "flux_model" or col not in df.columns:
+                        continue
+                    ax.plot(df["w"], df[col], label=title, lw=1, color=color, linestyle=ls)
+                ax.set_ylabel(ylabels[row_idx], fontsize=9)
+                ax.tick_params(axis='both', labelsize=8)
+                ax.legend(loc="upper right", fontsize=7)
+                ax.grid(True)
+                add_telluric_shading(ax)
+
+    if not full:
+        for col_idx, df in enumerate(dfs):
+            ax_flux = axes[0, col_idx]
+            ax_flux.plot(df["w"], df["flux"], color="black", lw=1, label="Flux")
+            ax_flux.set_ylabel(ylabels[0], fontsize=9)
+            ax_flux.tick_params(axis='both', labelsize=8)
+            ax_flux.legend(loc="upper right", fontsize=8)
+            ax_flux.grid(True)
+            add_telluric_shading(ax_flux)
+
+    # transmissivity & corrected flux
+    with np.errstate(divide='ignore', invalid='ignore'):
+        transmissivity = np.where(df_S["flux_model"] != 0, df_S["flux"] / df_S["flux_model"], np.nan)
+        corrected_flux = np.where(transmissivity != 0, df_obj["flux"] / transmissivity, np.nan)
+
+    # corrected flux plot
+    row_corr = 1 if not full else 2
+    ax_corr = axes[row_corr, 0]
+    ax_corr.plot(df_obj["w"], corrected_flux, color="darkgreen", lw=1, zorder=100, label="Corrected Flux (calc)")
+
+    if "flux_cor" in df_obj.columns:
+        if "fluxerr_cor" in df_obj.columns:
+            ax_corr.errorbar(
+                df_obj["w"], df_obj["flux_cor"], yerr=df_obj["fluxerr_cor"],
+                fmt="o", markersize=2, color="orange", label="Corrected Flux (from col)",
+                alpha=0.7, capsize=1)
+        else:
+            ax_corr.plot(
+                df_obj["w"], df_obj["flux_cor"], color="orange", lw=0.2,
+                label="Corrected Flux (from col)")
+            
+    # Add photometry
+    if df_phot is not None:
+        label = "Photometry"
+        ax_corr.scatter(
+            df_phot["wavelength"], df_phot["flux"]*1e3, color="red", label=label)
+
+
+    ax_corr.set_ylabel("Calibrated Flux [mJy]", fontsize=9)
+    ax_corr.set_xlabel("Wavelength [micron]", fontsize=9)
+    ax_corr.tick_params(labelsize=8)
+    ax_corr.legend(loc="lower right", fontsize=8)
+    ax_corr.grid(True)
+    add_telluric_shading(ax_corr)
+
+    valid_vals = corrected_flux[~np.isnan(corrected_flux)]
+    if len(valid_vals) > 0:
+        _, high = np.percentile(valid_vals, [0, 99])
+        ax_corr.set_ylim(0, high)
+
+    # fitting
+    mask = ~np.isnan(corrected_flux)
+    xeff = df_obj["w"][mask]
+    yeff = corrected_flux[mask]
+
+    w_min, w_max = w_fit_range
+    fit_mask = (xeff >= w_min) & (xeff <= w_max)
+    xfit_eff = xeff[fit_mask]
+    yfit_eff = yeff[fit_mask]
+
+    polymodel = Polynomial1D(degree=fit_degree)
+    linfitter = LinearLSQFitter()
+    y_fit_model = linfitter(polymodel, xfit_eff, yfit_eff)
+
+    x_fit = np.linspace(w_min, w_max, 500)
+    y_fit = y_fit_model(x_fit)
+    ax_corr.plot(x_fit, y_fit, color="red", lw=2, label=f"Poly fit deg={fit_degree}")
+
+    # emissivity
+    with np.errstate(divide='ignore', invalid='ignore'):
+        emissivity = np.where(y_fit_model(xeff) != 0, yeff / y_fit_model(xeff), np.nan)
+
+    ax_emis = axes[row_corr, 1]
+    ax_emis.plot(xeff, emissivity, color="blue", lw=1, label="Emissivity")
+    ax_emis.set_ylabel("Emissivity", fontsize=9)
+    ax_emis.set_xlabel("Wavelength [micron]", fontsize=9)
+    ax_emis.tick_params(labelsize=8)
+    ax_emis.legend(loc="upper right", fontsize=8)
+    ax_emis.grid(True)
+    ax_emis.set_ylim(0.7, 1.3)
+    add_telluric_shading(ax_emis)
+
+    plt.tight_layout()
+    plt.show(block=False)
+    ans = input("Save figure? (y/n): ").strip().lower()
+    if ans != 'y':
+        plt.close()
+    try:
+        plt.savefig(out)
+
+    except ValueError:
+        print("Not saved. Exiting.")
+    plt.close()
 
 
 if __name__ == "__main__":
@@ -56,60 +244,25 @@ if __name__ == "__main__":
         "fi", type=str,
         help="Fits file")
     parser.add_argument(
-        "--out", type=str, default="spectrum.txt",
+        "fi_S", type=str,
+        help="Fits file of standard star")
+    parser.add_argument(
+        "--f_phot", type=str, default=None,
+        help="Result of photometry")
+    parser.add_argument(
+        "--out", type=str, default="spectrum.pdf",
         help="Output filename")
     args = parser.parse_args()
     
     # Extract
     df = extract_1dspec(args.fi)
-    
-    ## Convert [m] to [micron]
-    df["w"] = df["w_m"]*1e6
-    
+    df_S = extract_1dspec(args.fi_S)
 
-    # プロット対象と設定を定義
-    columns = [
-        ("flux", "Calibrated Flux", "black", "solid"),
-        ("flux_sky", "Sky", "gray", "dashed"),
-        ("flux_model", "Flux Model", "blue", "dotted"),
-        # 最後のsubplotにまとめて2つ描画
-        (("specmodel_PH", "specmodel_XC"), ("Specmodel PH", "Specmodel XC"), ("green", "red"), ("dashdot", "solid")),
-    ]
+    # Photometry if exists
+    if args.f_phot:
+        df_phot = pd.read_csv(args.f_phot, sep=" ")
+    else:
+        df_phot = None
     
-    # FigureとAxesの用意（4行1列）
-    fig, axes = plt.subplots(nrows=4, ncols=1, figsize=(10, 10), sharex=True)
-    axes[0].set_ylabel("ADU/s", fontsize=10)
-    axes[1].set_ylabel("ADU/s", fontsize=10)
-    axes[2].set_ylabel("mJy", fontsize=10)
-    axes[3].set_ylabel("J*radian/m^3/s", fontsize=10)
-    
-    # 各subplotにプロット
-    for i, (col, title, color, ls) in enumerate(columns):
-        ax = axes[i]
-        if isinstance(col, tuple):
-            # specmodel_PH と specmodel_XC を同じsubplotに描画
-            for c, t, clr, style in zip(col, title, color, ls):
-                ax.plot(df["w"], df[c], label=t, lw=1, color=clr, linestyle=style)
-        else:
-            ax.plot(df["w"], df[col], label=title, lw=1, color=color, linestyle=ls)
-        
-        ax.legend(loc="upper right")
-        ax.tick_params(axis='both', labelsize=8)
-        ax.grid(True)
-    
-    # x軸ラベルは最後にだけ付ける
-    axes[-1].set_xlabel("Wavelength [micron]")
-    
-    plt.tight_layout()
-    plt.show(block=False)
-
-
-    ans = input("Save figure? (y/n): ").strip().lower()
-    if ans != 'y':
-        plt.close()
-    try:
-        plt.savefig(args.out)
-
-    except ValueError:
-        print("Not saved. Exiting.")
-    plt.close()
+    plot_spectrum(
+        df, df_S, df_phot=df_phot, w_fit_range=(7, 13), fit_degree=3, full=True, out=args.out)
