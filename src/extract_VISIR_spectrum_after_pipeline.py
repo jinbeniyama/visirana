@@ -268,7 +268,7 @@ def plot_spectrum(
     if "flux_cor" in df.columns:
         if "fluxerr_cor" in df.columns:
             ax_flux.errorbar(
-                df["w"], df["flux_cor"], yerr=df["fluxerr_cor"],
+                df["w"], df["flux_cor"]/1e3, yerr=df["fluxerr_cor"]/1e3,
                 fmt="o", markersize=2, color="orange", label="Corrected Flux (from col)",
                 alpha=0.7, capsize=1)
             
@@ -276,16 +276,16 @@ def plot_spectrum(
     if df_phot is not None:
         label = "Photometry"
         ax_flux.scatter(
-            df_phot["wavelength"], df_phot["flux"]*1e3, color="red", label=label)
+            df_phot["wavelength"], df_phot["flux"], color="red", label=label)
 
-    ax_flux.set_ylabel("Calibrated Flux [mJy]", fontsize=9)
+    ax_flux.set_ylabel("Flux density [Jy]", fontsize=9)
     ax_flux.set_xlabel("Wavelength [micron]", fontsize=9)
     ax_flux.tick_params(labelsize=8)
     ax_flux.legend(loc="lower right", fontsize=8)
     ax_flux.grid(True)
     add_telluric_shading(ax_flux)
     
-    corrected_flux = df["flux_cor"]
+    corrected_flux = df["flux_cor"]/1e3
     valid_vals = corrected_flux[~np.isnan(corrected_flux)]
     if len(valid_vals) > 0:
         _, high = np.percentile(valid_vals, [0, 99])
