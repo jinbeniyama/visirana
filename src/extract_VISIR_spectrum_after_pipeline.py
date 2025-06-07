@@ -261,22 +261,8 @@ def plot_spectrum(
     # 0: corrected flux & emissivity
     fig, axes = plt.subplots(nrows=nrows, ncols=2, figsize=(12, 6), sharex=True)
 
-    ylabels = ["ADU/s", "Corrected Flux"]
-
     ax_flux = axes[0]
-
-    if "flux_cor" in df.columns:
-        if "fluxerr_cor" in df.columns:
-            ax_flux.errorbar(
-                df["w"], df["flux_cor"]/1e3, yerr=df["fluxerr_cor"]/1e3,
-                fmt="o", markersize=2, color="orange", label="Corrected Flux (from col)",
-                alpha=0.7, capsize=1)
-            
-    # Add photometry
-    if df_phot is not None:
-        label = "Photometry"
-        ax_flux.scatter(
-            df_phot["wavelength"], df_phot["flux"], color="red", label=label)
+    ax_emis = axes[1]
 
     ax_flux.set_ylabel("Flux density [Jy]", fontsize=9)
     ax_flux.set_xlabel("Wavelength [micron]", fontsize=9)
@@ -284,14 +270,63 @@ def plot_spectrum(
     ax_flux.legend(loc="lower right", fontsize=8)
     ax_flux.grid(True)
     add_telluric_shading(ax_flux)
-    
-    corrected_flux = df["flux_cor"]/1e3
-    valid_vals = corrected_flux[~np.isnan(corrected_flux)]
-    if len(valid_vals) > 0:
-        _, high = np.percentile(valid_vals, [0, 99])
-        ax_flux.set_ylim(0, high)
 
-    # fitting
+
+    # From mJy to Jy
+    df["flux_cor"] /= 1e3
+    df["fluxerr_cor"] /= 1e3
+
+
+    # Plot observed spectrum        
+    ## Add photometry
+    if df_phot is not None:
+        label = "Photometry"
+        ax_flux.scatter(
+            df_phot["wavelength"], df_phot["flux"], color="red", zorder=100, label=label)
+
+        # Shift spectrum to match photometry
+        # TODO: Update
+        # Linear interpolation
+        w0_phot = np.min(df_phot["wavelength"])
+        w1_phot = np.max(df_phot["wavelength"])
+        f0_phot = np.mean(df_phot[df_phot["wavelength"]==w0_phot]["flux"])
+        f1_phot = np.mean(df_phot[df_phot["wavelength"]==w1_phot]["flux"])
+        
+        # Flux density of spectrum at w0 and w1
+        idx_w0 = (df["w"] - w0_phot).abs().idxmin()
+        idx_w1 = (df["w"] - w1_phot).abs().idxmin()
+        f0_spec = df.loc[idx_w0, "flux_cor"]
+        f1_spec = df.loc[idx_w1, "flux_cor"]
+
+        ratio0 = f0_phot/f0_spec
+        ratio1 = f1_phot/f1_spec
+        print(f"ratio0, ratio1 = {ratio0:.2f}, {ratio1:.2f}")
+
+        # If ratio0 == ratio1, it is easy. 
+        # Make a linear model for correction.
+        slope = (ratio1 - ratio0) / (w1_phot - w0_phot)
+        intercept = ratio0 - slope * w0_phot
+
+        def ratio(w):
+            return slope * w + intercept
+
+        # Do correction
+        ## Obs
+        ratios = ratio(df["w"])
+        df["flux_cor"] = [y*r for (y, r) in zip(df["flux_cor"], ratios)]
+        df["fluxerr_cor"] = [y*r for (y, r) in zip(df["fluxerr_cor"], ratios)]
+        label_spec = "Observed spectrum (shifted to match photometry)"
+    else:
+        label_spec = "Observed spectrum"
+    ## Plot
+    ax_flux.errorbar(
+        df["w"], df["flux_cor"], yerr=df["fluxerr_cor"],
+        fmt="o", markersize=2, color="black", label=label_spec,
+        alpha=0.7, capsize=1)
+
+    # Fitting curve
+    ## Make fitting curve
+    corrected_flux = df["flux_cor"]
     mask = ~np.isnan(corrected_flux)
     xeff = df["w"][mask]
     yeff = corrected_flux[mask]
@@ -307,21 +342,31 @@ def plot_spectrum(
 
     x_fit = np.linspace(w_min, w_max, 500)
     y_fit = y_fit_model(x_fit)
-    ax_flux.plot(x_fit, y_fit, color="red", lw=2, label=f"Poly fit deg={fit_degree}")
 
+    # Plot
+    label_fit = f"Poly fit deg={fit_degree}"
+    ax_flux.plot(
+        x_fit, y_fit, color="gray", ls="dashed", lw=2, label=label_fit)
+    
+    # Change plot range
+    #valid_vals = corrected_flux[~np.isnan(corrected_flux)]
+    #if len(valid_vals) > 0:
+    _, high = np.percentile(df["flux_cor"], [0, 99])
+    ax_flux.set_ylim(0, high)
+    
     # emissivity
     with np.errstate(divide='ignore', invalid='ignore'):
         emissivity = np.where(y_fit_model(xeff) != 0, yeff / y_fit_model(xeff), np.nan)
 
-    ax_emis = axes[1]
-    ax_emis.plot(xeff, emissivity, color="blue", lw=1, label="Emissivity")
+    add_telluric_shading(ax_emis)
+    ax_emis.plot(xeff, emissivity, color="black", lw=1, label="Emissivity")
     ax_emis.set_ylabel("Emissivity", fontsize=9)
     ax_emis.set_xlabel("Wavelength [micron]", fontsize=9)
     ax_emis.tick_params(labelsize=8)
-    ax_emis.legend(loc="upper right", fontsize=8)
     ax_emis.grid(True)
     ax_emis.set_ylim(0.7, 1.3)
-    add_telluric_shading(ax_emis)
+    ax_emis.legend(fontsize=12).get_frame().set_alpha(1.0)
+    ax_flux.legend(fontsize=12).get_frame().set_alpha(1.0)
 
     plt.tight_layout()
     plt.show(block=False)
