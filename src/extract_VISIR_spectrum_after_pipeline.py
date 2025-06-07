@@ -250,6 +250,9 @@ if __name__ == "__main__":
         "--f_phot", type=str, default=None,
         help="Result of photometry")
     parser.add_argument(
+        "--full", action="store_true", default=False,
+        help="Plot full results.")
+    parser.add_argument(
         "--out", type=str, default="spectrum.pdf",
         help="Output filename")
     args = parser.parse_args()
@@ -265,4 +268,4 @@ if __name__ == "__main__":
         df_phot = None
     
     plot_spectrum(
-        df, df_S, df_phot=df_phot, w_fit_range=(7, 13), fit_degree=3, full=True, out=args.out)
+        df, df_S, df_phot=df_phot, w_fit_range=(7, 13), fit_degree=3, full=args.full, out=args.out)
