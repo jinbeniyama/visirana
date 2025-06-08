@@ -241,12 +241,6 @@ def plot_spectrum(
     out : str, optional
         output filename
     """
-    columns = [
-        ("flux", "Calibrated Flux", "black", "-"),   
-        ("flux_sky", "Sky Background", "blue", "-"),    
-        ("dummy", "", "gray", "-"), 
-    ]
-
     # Plot shade on telluric features
     #   wmin, wmax, label
     telluric_features = [
@@ -271,22 +265,27 @@ def plot_spectrum(
     ax_flux.grid(True)
     add_telluric_shading(ax_flux)
 
-
     # From mJy to Jy
     df["flux_cor"] /= 1e3
     df["fluxerr_cor"] /= 1e3
 
-
     # Plot observed spectrum        
     ## Add photometry
     if df_phot is not None:
+        memo = df_phot["memo"][0]
         label = "Photometry"
-        ax_flux.scatter(
-            df_phot["wavelength"], df_phot["flux"], color="red", zorder=100, label=label)
+        df_phot["width"] = df_phot["wavelength_max"] - df_phot["wavelength_min"]
+        ax_flux.errorbar(
+            df_phot["wavelength"], df_phot["flux"], 
+            xerr=df_phot["width"],
+            yerr=df_phot["fluxerr"],
+            fmt="o",
+            color="red", zorder=100, label=label)
 
         # Shift spectrum to match photometry
         # TODO: Update
         # Linear interpolation
+
         w0_phot = np.min(df_phot["wavelength"])
         w1_phot = np.max(df_phot["wavelength"])
         f0_phot = np.mean(df_phot[df_phot["wavelength"]==w0_phot]["flux"])
@@ -300,24 +299,34 @@ def plot_spectrum(
 
         ratio0 = f0_phot/f0_spec
         ratio1 = f1_phot/f1_spec
+        ratio_shift = (ratio0 + ratio1)/2.
         print(f"ratio0, ratio1 = {ratio0:.2f}, {ratio1:.2f}")
+        print(f"-> Use average ratio, {ratio_shift:.2f}, to shift")
 
-        # If ratio0 == ratio1, it is easy. 
-        # Make a linear model for correction.
-        slope = (ratio1 - ratio0) / (w1_phot - w0_phot)
-        intercept = ratio0 - slope * w0_phot
+        # Use first measurement to shift spectrum
+        df["flux_cor"] = [y*ratio_shift for y in df["flux_cor"]]
+        df["fluxerr_cor"] = [y*ratio_shift for y in df["fluxerr_cor"]]
+        
+        # Shift using linear interpolation ====================================
+        ## If ratio0 == ratio1, it is easy. 
+        ## Make a linear model for correction.
+        #slope = (ratio1 - ratio0) / (w1_phot - w0_phot)
+        #intercept = ratio0 - slope * w0_phot
+        #def ratio(w):
+        #    return slope * w + intercept
 
-        def ratio(w):
-            return slope * w + intercept
+        ## Do correction
+        ### Obs
+        #ratios = ratio(df["w"])
+        #df["flux_cor"] = [y*r for (y, r) in zip(df["flux_cor"], ratios)]
+        #df["fluxerr_cor"] = [y*r for (y, r) in zip(df["fluxerr_cor"], ratios)]
+        # Shift using linear interpolation ====================================
 
-        # Do correction
-        ## Obs
-        ratios = ratio(df["w"])
-        df["flux_cor"] = [y*r for (y, r) in zip(df["flux_cor"], ratios)]
-        df["fluxerr_cor"] = [y*r for (y, r) in zip(df["fluxerr_cor"], ratios)]
-        label_spec = "Observed spectrum (shifted to match photometry)"
+        label_spec = (
+            f"Observed spectrum {memo}\n  "
+            f"(shifted to fit photometry by multiplying by {ratio_shift:.2f})")
     else:
-        label_spec = "Observed spectrum"
+        label_spec = "Observed spectrum (not shifted)"
     ## Plot
     ax_flux.errorbar(
         df["w"], df["flux_cor"], yerr=df["fluxerr_cor"],
@@ -352,7 +361,8 @@ def plot_spectrum(
     #valid_vals = corrected_flux[~np.isnan(corrected_flux)]
     #if len(valid_vals) > 0:
     _, high = np.percentile(df["flux_cor"], [0, 99])
-    ax_flux.set_ylim(0, high)
+    #ax_flux.set_ylim(0, high)
+    ax_flux.set_ylim(0, 100)
     
     # emissivity
     with np.errstate(divide='ignore', invalid='ignore'):
