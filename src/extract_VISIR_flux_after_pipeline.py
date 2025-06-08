@@ -104,7 +104,9 @@ if __name__ == "__main__":
         # Extract one radius for TPM
         df = df[df["rad"] == args.rad]
         df = df.reset_index(drop=True)
-        col_use = ["jd", "wavelength", "flux", "fluxerr", "code", "cflag", "memo"]
+        col_use = [
+            "jd", "wavelength", "wavelength_min", "wavelength_max", 
+            "flux", "fluxerr", "code", "cflag", "memo"]
         # Do not include rad
         df = df[col_use]
 
