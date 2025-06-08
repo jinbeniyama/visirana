@@ -27,8 +27,13 @@ def extract_VISIR_photometry(fi):
     N_hdu = len(hdu)
     hdu1 = hdu[0]
     fltr = hdu[0].header["HIERARCH ESO INS FILT1 NAME"]
-    # J12.2 to 12.2
-    wave = fltr[1:]
+    # TODO: Update
+    # Read from the VISIR manual with J.B.'s eyes 
+    if fltr == "J12.2":
+        wave, wave0, wave1 = 12.0, 11.8, 12.2
+    elif fltr == "J8.9":
+        wave, wave0, wave1 = 8.7, 8.4, 9.0
+
     obj = hdu[0].header["OBJECT"]
     mjd = hdu[0].header["MJD-OBS"]
     jd = Time(str(mjd), format='mjd', scale='utc').jd
@@ -61,7 +66,9 @@ def extract_VISIR_photometry(fi):
     # Assume 10 % error
     df["fluxerr"] = df["flux"]*0.1
     # Wavelength in micron
-    df["wavelength"] = float(wave)
+    df["wavelength"] = wave
+    df["wavelength_min"] = wave0
+    df["wavelength_max"] = wave1
     # TODO: Check
     # Consider light-time correction, exposure time, etc.
     df["jd"] = jd
