@@ -105,6 +105,8 @@ def plot_spectrum_full(
     #   wmin, wmax, label
     telluric_features = [
         (9.2, 10.1, "Ozone"),
+        (6.0, 8.2, "Water?"),
+        (13.0, 14.3, "Water?"),
     ]
 
     def add_telluric_shading(ax):
@@ -208,7 +210,7 @@ def plot_spectrum_full(
     ax_emis.tick_params(labelsize=8)
     ax_emis.legend(loc="upper right", fontsize=8)
     ax_emis.grid(True)
-    ax_emis.set_ylim(0.7, 1.3)
+    ax_emis.set_ylim(0.9, 1.1)
     add_telluric_shading(ax_emis)
 
     plt.tight_layout()
@@ -245,6 +247,8 @@ def plot_spectrum(
     #   wmin, wmax, label
     telluric_features = [
         (9.2, 10.1, "Ozone"),
+        (6.5, 8.2, "Water?"),
+        (13.0, 14.3, "Water?"),
     ]
 
     def add_telluric_shading(ax):
@@ -363,6 +367,7 @@ def plot_spectrum(
     _, high = np.percentile(df["flux_cor"], [0, 99])
     #ax_flux.set_ylim(0, high)
     ax_flux.set_ylim(0, 100)
+    ax_flux.set_xlim(7, 14)
     
     # emissivity
     with np.errstate(divide='ignore', invalid='ignore'):
@@ -374,7 +379,7 @@ def plot_spectrum(
     ax_emis.set_xlabel("Wavelength [micron]", fontsize=9)
     ax_emis.tick_params(labelsize=8)
     ax_emis.grid(True)
-    ax_emis.set_ylim(0.7, 1.3)
+    ax_emis.set_ylim(0.90, 1.10)
     ax_emis.legend(fontsize=12).get_frame().set_alpha(1.0)
     ax_flux.legend(fontsize=12).get_frame().set_alpha(1.0)
 
@@ -422,7 +427,7 @@ if __name__ == "__main__":
     
     if args.full:
         plot_spectrum_full(
-            df, df_S, df_phot=df_phot, w_fit_range=(7, 13), fit_degree=3, out=args.out)
+            df, df_S, df_phot=df_phot, w_fit_range=(8.2, 13), fit_degree=3, out=args.out)
     else:
         plot_spectrum(
-            df, df_phot=df_phot, w_fit_range=(7, 13), fit_degree=3, out=args.out)
+            df, df_phot=df_phot, w_fit_range=(8.2, 13), fit_degree=3, out=args.out)
