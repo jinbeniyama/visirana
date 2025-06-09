@@ -227,7 +227,7 @@ def plot_spectrum_full(
 
 
 def plot_spectrum(
-        df, df_phot=None, w_fit_range=(7, 13), fit_degree=3, out=None):
+        df, df_phot=None, w_fit_range=(7, 13), fit_degree=3, out_fig=None, out_res=None):
     """Plot extracted spectrum with additional information.
 
     Parameters
@@ -389,7 +389,11 @@ def plot_spectrum(
     if ans != 'y':
         plt.close()
     try:
-        plt.savefig(out)
+        plt.savefig(out_fig)
+        print(f"  Figure is saved as {out_fig}")
+        # Save spectroscopy
+        df.to_csv(out_res, sep=" ", index=False)
+        print(f"  Result is saved as {out_res}")
 
     except ValueError:
         print("Not saved. Exiting.")
@@ -402,8 +406,8 @@ if __name__ == "__main__":
         "fi", type=str,
         help="Fits file")
     parser.add_argument(
-        "fi_S", type=str,
-        help="Fits file of standard star")
+        "--fi_S", type=str, default=None,
+        help="Fits file of standard star (necessary with full option)")
     parser.add_argument(
         "--f_phot", type=str, default=None,
         help="Result of photometry")
@@ -411,13 +415,15 @@ if __name__ == "__main__":
         "--full", action="store_true", default=False,
         help="Plot full results.")
     parser.add_argument(
-        "--out", type=str, default="spectrum.pdf",
+        "--out_fig", type=str, default="spectrum.pdf",
+        help="Output figure name")
+    parser.add_argument(
+        "--out_res", type=str, default="spectrum.txt",
         help="Output filename")
     args = parser.parse_args()
     
     # Extract
     df = extract_1dspec(args.fi)
-    df_S = extract_1dspec(args.fi_S)
 
     # Photometry if exists
     if args.f_phot:
@@ -426,8 +432,10 @@ if __name__ == "__main__":
         df_phot = None
     
     if args.full:
+        df_S = extract_1dspec(args.fi_S)
         plot_spectrum_full(
             df, df_S, df_phot=df_phot, w_fit_range=(8.2, 13), fit_degree=3, out=args.out)
     else:
         plot_spectrum(
-            df, df_phot=df_phot, w_fit_range=(8.2, 13), fit_degree=3, out=args.out)
+            df, df_phot=df_phot, w_fit_range=(8.2, 13), 
+            fit_degree=3, out_fig=args.out_fig, out_res=args.out_res)
