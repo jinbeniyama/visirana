@@ -63,15 +63,23 @@ def extract_1dspec(fi):
         # 7: flux err             [mJy] (not Jy, VISIR manual 1.11 is wrong)
         data = hdu1.data
         arr = np.array(data, dtype=[
-            ("w_m", "f8"), ("specmodel_PH", "f8"), ("specmodel_XC", "f8"),
-            ("flux_sky", "f8"), ("flux", "f8"), ("fluxerr", "f8"),
-            ("flux_cor", "f8"), ("fluxerr_cor", "f8"), 
+            ("wavelength", "f8"), ("specmodel_PH", "f8"), ("specmodel_XC", "f8"),
+            ("flux_sky", "f8"), ("flux_adu", "f8"), ("fluxerr_adu", "f8"),
+            ("flux", "f8"), ("fluxerr", "f8"), 
             ])
 
     df = pd.DataFrame(arr)
 
+    # Remove NaN
+    N0 = len(df)
+    mask = ~np.isnan(df["flux"])
+    df = df[mask]
+    N1 = len(df)
+    if N0 != N1:
+        print(f"  N={N0-N1} data with NaN removed.")
+
     ## Convert [m] to [micron]
-    df["w"] = df["w_m"]*1e6
+    df["wavelength"] = df["wavelength"]*1e6
 
     return df
 
@@ -227,7 +235,8 @@ def plot_spectrum_full(
 
 
 def plot_spectrum(
-        df, df_phot=None, w_fit_range=(7, 13), fit_degree=3, out_fig=None, out_res=None):
+        df, df_phot=None, w_fit_range=(7, 13), fit_degree=3, 
+        out_fig=None, out_res=None):
     """Plot extracted spectrum with additional information.
 
     Parameters
@@ -270,8 +279,8 @@ def plot_spectrum(
     add_telluric_shading(ax_flux)
 
     # From mJy to Jy
-    df["flux_cor"] /= 1e3
-    df["fluxerr_cor"] /= 1e3
+    df["flux"] /= 1e3
+    df["fluxerr"] /= 1e3
 
     # Plot observed spectrum        
     ## Add photometry
@@ -296,10 +305,10 @@ def plot_spectrum(
         f1_phot = np.mean(df_phot[df_phot["wavelength"]==w1_phot]["flux"])
         
         # Flux density of spectrum at w0 and w1
-        idx_w0 = (df["w"] - w0_phot).abs().idxmin()
-        idx_w1 = (df["w"] - w1_phot).abs().idxmin()
-        f0_spec = df.loc[idx_w0, "flux_cor"]
-        f1_spec = df.loc[idx_w1, "flux_cor"]
+        idx_w0 = (df["wavelength"] - w0_phot).abs().idxmin()
+        idx_w1 = (df["wavelength"] - w1_phot).abs().idxmin()
+        f0_spec = df.loc[idx_w0, "flux"]
+        f1_spec = df.loc[idx_w1, "flux"]
 
         ratio0 = f0_phot/f0_spec
         ratio1 = f1_phot/f1_spec
@@ -308,8 +317,8 @@ def plot_spectrum(
         print(f"-> Use average ratio, {ratio_shift:.2f}, to shift")
 
         # Use first measurement to shift spectrum
-        df["flux_cor"] = [y*ratio_shift for y in df["flux_cor"]]
-        df["fluxerr_cor"] = [y*ratio_shift for y in df["fluxerr_cor"]]
+        df["flux"] = [y*ratio_shift for y in df["flux"]]
+        df["fluxerr"] = [y*ratio_shift for y in df["fluxerr"]]
         
         # Shift using linear interpolation ====================================
         ## If ratio0 == ratio1, it is easy. 
@@ -333,16 +342,14 @@ def plot_spectrum(
         label_spec = "Observed spectrum (not shifted)"
     ## Plot
     ax_flux.errorbar(
-        df["w"], df["flux_cor"], yerr=df["fluxerr_cor"],
+        df["wavelength"], df["flux"], yerr=df["fluxerr"],
         fmt="o", markersize=2, color="black", label=label_spec,
         alpha=0.7, capsize=1)
 
     # Fitting curve
     ## Make fitting curve
-    corrected_flux = df["flux_cor"]
-    mask = ~np.isnan(corrected_flux)
-    xeff = df["w"][mask]
-    yeff = corrected_flux[mask]
+    xeff = df["wavelength"]
+    yeff = df["flux"]
 
     w_min, w_max = w_fit_range
     fit_mask = (xeff >= w_min) & (xeff <= w_max)
@@ -352,19 +359,19 @@ def plot_spectrum(
     polymodel = Polynomial1D(degree=fit_degree)
     linfitter = LinearLSQFitter()
     y_fit_model = linfitter(polymodel, xfit_eff, yfit_eff)
-
-    x_fit = np.linspace(w_min, w_max, 500)
-    y_fit = y_fit_model(x_fit)
+     
+    # Use the same wavelengths as observations
+    y_fit = y_fit_model(xeff)
 
     # Plot
     label_fit = f"Poly fit deg={fit_degree}"
     ax_flux.plot(
-        x_fit, y_fit, color="gray", ls="dashed", lw=2, label=label_fit)
+        xeff, y_fit, color="gray", ls="dashed", lw=2, label=label_fit)
     
     # Change plot range
     #valid_vals = corrected_flux[~np.isnan(corrected_flux)]
     #if len(valid_vals) > 0:
-    _, high = np.percentile(df["flux_cor"], [0, 99])
+    _, high = np.percentile(df["flux"], [0, 99])
     #ax_flux.set_ylim(0, high)
     ax_flux.set_ylim(0, 100)
     ax_flux.set_xlim(7, 14)
@@ -372,6 +379,8 @@ def plot_spectrum(
     # emissivity
     with np.errstate(divide='ignore', invalid='ignore'):
         emissivity = np.where(y_fit_model(xeff) != 0, yeff / y_fit_model(xeff), np.nan)
+    df["emissivity"] = emissivity
+    df[f"flux_poly{fit_degree}"] = y_fit
 
     add_telluric_shading(ax_emis)
     ax_emis.plot(xeff, emissivity, color="black", lw=1, label="Emissivity")
@@ -392,6 +401,8 @@ def plot_spectrum(
         plt.savefig(out_fig)
         print(f"  Figure is saved as {out_fig}")
         # Save spectroscopy
+        col_save = ["wavelength", "flux", "fluxerr", f"flux_poly{fit_degree}", "emissivity"]
+        df = df[col_save]
         df.to_csv(out_res, sep=" ", index=False)
         print(f"  Result is saved as {out_res}")
 
