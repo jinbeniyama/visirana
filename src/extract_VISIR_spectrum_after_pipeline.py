@@ -366,6 +366,7 @@ def plot_spectrum(
         emissivity = np.where(y_fit_model(xeff) != 0, yeff / y_fit_model(xeff), np.nan)
     df["emissivity"] = emissivity
     df[f"flux_poly{fit_degree}"] = y_fit
+    df["scalefactor"] = ratio_shift
 
     add_telluric_shading(ax_emis)
     ax_emis.plot(xeff, emissivity, color="black", lw=1, label="Emissivity")
@@ -386,7 +387,7 @@ def plot_spectrum(
         plt.savefig(out_fig)
         print(f"  Figure is saved as {out_fig}")
         # Save spectroscopy
-        col_save = ["wavelength", "flux", "fluxerr", f"flux_poly{fit_degree}", "emissivity"]
+        col_save = ["wavelength", "flux", "fluxerr", f"flux_poly{fit_degree}", "emissivity", "scalefactor"]
         df = df[col_save]
         df.to_csv(out_res, sep=" ", index=False)
         print(f"  Result is saved as {out_res}")
