@@ -12,6 +12,7 @@ import astropy.io.fits as fits
 from astropy.modeling.polynomial import Polynomial1D
 from astropy.modeling.fitting import LinearLSQFitter
 
+from visirana.util import telluric_features
 
 def extract_1dspec(fi):
     """Extract calibrated spectrum.
@@ -107,14 +108,6 @@ def plot_spectrum_full(
         ("flux", "Calibrated Flux", "black", "-"),   
         ("flux_sky", "Sky Background", "blue", "-"),    
         ("dummy", "", "gray", "-"), 
-    ]
-
-    # Plot shade on telluric features
-    #   wmin, wmax, label
-    telluric_features = [
-        (9.2, 10.1, "Ozone"),
-        (6.0, 8.2, "Water?"),
-        (13.0, 14.3, "Water?"),
     ]
 
     def add_telluric_shading(ax):
@@ -252,14 +245,6 @@ def plot_spectrum(
     out : str, optional
         output filename
     """
-    # Plot shade on telluric features
-    #   wmin, wmax, label
-    telluric_features = [
-        (9.2, 10.1, "Ozone"),
-        (6.5, 8.2, "Water?"),
-        (13.0, 14.3, "Water?"),
-    ]
-
     def add_telluric_shading(ax):
         for w_min, w_max, label in telluric_features:
             ax.axvspan(w_min, w_max, color='gray', alpha=0.3, label=label)
