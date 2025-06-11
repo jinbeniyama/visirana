@@ -4,6 +4,13 @@ from scipy.optimize import curve_fit
 
 import sep
 
+#   wmin, wmax, label
+telluric_features = [
+    (9.2, 10.1, "Ozone"),
+    (6.0, 8.2, "Water?"),
+    (13.0, 14.3, "Water?"),
+]
+
 def cut4VISIR(image):
     """
     Cut useless pixels for clarity.
@@ -295,4 +302,5 @@ def radial_profile(image, center, bgerr, gain):
     perr = [np.sqrt(abs(v)*gain)/gain for v in y]
     yerr = [np.sqrt(bgerr**2 + pe**2) for pe in perr]
     return y, yerr
+
 
