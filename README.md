@@ -25,7 +25,7 @@ nodstack.py --fA_list (fits_nodA_1) (fits_nodA_2) --fB_list (fits_nodB_1) (fits_
 ```
 
 
-### Aperture photometry (for imaging)
+### Aperture photometry (for images calibrated with own custom codes)
 ```
 # Aperture photometry with local background subtraction using an annulus
 ## Just output the result and plot them
@@ -42,35 +42,23 @@ phot_standard_visir.py (fits_nod1) (fits_nod2) --tlim (exposure time to calculca
 phot_random_visir.py (fits) -N (Number of apertures) --rad (aperture radius) --rin (inner edge of annulus) --rout (outer edge of annulus) --out_photres (photometry result)
 ```
 
-### Extract 1-D spectrum (for spectroscopy)
-This process is interactive. 
-
-``` 
-# Extract with argmax
-spec_visir.py (fits after stacking) argmax
+### Aperture photometry (for images calibrated with ESO pipeline)
+```
+# Do photometry
+extract_VISIR_flux_after_pipeline.py (fits after reduction) 
+# Do phtometry of multiple fits files
+extract_VISIR_flux_after_pipeline.py (fits after reduction 1) (fits after reduction 2)
+# Do phtometry of multiple fits files, output result with aperture radius of 30
+extract_VISIR_flux_after_pipeline.py (fits after reduction 1) (fits after reduction 2) --rad 30 
 ```
 
-``` 
-# Extract with 1st-order moment
-spec_visir.py (fits after stacking) moment
+### Extract 2-D spectrum (for images calibrated with ESO pipeline)
 ```
+# Extract spectrum
+extract_VISIR_spectrum_after_pipeline.py (fits after reduction)
 
-### Wavelength calibration (for spectroscopy)
-In prep.
-
-### Wavelength calibration (for spectroscopy)
-You can check atmospheric emission spectrum, quantum efficiency, and model flux of standard star as follows.
-``` 
-# Atmospheric emission
-plot_skyemission.py (fits usually M.VISIR.YYYY-MM-DD...)
-```
-``` 
-# Quantum efficiency
-plot_QE.py (fits usually M.VISIR.YYYY-MM-DD...)
-```
-``` 
-# Model flux of object of interest
-plot_QE.py (fits usually M.VISIR.YYYY-MM-DD...) (object of interest)
+# Extract spectrum shifted to match photometry
+extract_VISIR_spectrum_after_pipeline.py (fits after reduction) --f_phot (reduction of aperture photometry)
 ```
 
 ## Dependencies
