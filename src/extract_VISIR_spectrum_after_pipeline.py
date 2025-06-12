@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-""" Extract spectrum from M....fits.
+""" Extract spectrum from M....fits. or output fits using e.g., esoreflex.
 """
 import os 
 import sys
