@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-""" Extract spectrum from M....fits.
+""" Extract spectrum from M....fits. or output fits using e.g., esoreflex.
 """
 import os 
 import sys
@@ -48,7 +48,7 @@ def extract_1dspec(fi):
         # 7: sensitivity          [mJy]
         data = hdu1.data
         arr = np.array(data, dtype=[
-            ("w_m", "f8"), ("specmodel_PH", "f8"), ("specmodel_XC", "f8"),
+            ("wavelength", "f8"), ("specmodel_PH", "f8"), ("specmodel_XC", "f8"),
             ("flux_sky", "f8"), ("flux", "f8"), ("fluxerr", "f8"),
             ("flux_model", "f8"), ("sensitivity", "f8"), 
             ])
@@ -383,18 +383,128 @@ def plot_spectrum(
     ans = input("Save figure? (y/n): ").strip().lower()
     if ans != 'y':
         plt.close()
-    try:
-        plt.savefig(out_fig)
-        print(f"  Figure is saved as {out_fig}")
-        # Save spectroscopy
-        col_save = ["wavelength", "flux", "fluxerr", f"flux_poly{fit_degree}", "emissivity", "scalefactor"]
-        df = df[col_save]
-        df.to_csv(out_res, sep=" ", index=False)
-        print(f"  Result is saved as {out_res}")
+    else:
+        try:
+            plt.savefig(out_fig)
+            print(f"  Figure is saved as {out_fig}")
+            # Save spectroscopy
+            col_save = ["wavelength", "flux", "fluxerr", f"flux_poly{fit_degree}", "emissivity", "scalefactor"]
+            df = df[col_save]
+            df.to_csv(out_res, sep=" ", index=False)
+            print(f"  Result is saved as {out_res}")
 
-    except ValueError:
-        print("Not saved. Exiting.")
-    plt.close()
+        except ValueError:
+            print("Not saved. Exiting.")
+        plt.close()
+
+
+def plot_spectrum_std(
+        df, df_phot=None, w_fit_range=(7, 13), fit_degree=3, 
+        out_fig=None, out_res=None):
+    """Plot extracted spectrum of standard stars.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        dataframe of object of interest
+    out_fig : str, optional
+        output figure name
+    out_res : str, optional
+        output text name
+    """
+    def add_telluric_shading(ax):
+        for w_min, w_max, label in telluric_features:
+            ax.axvspan(w_min, w_max, color='gray', alpha=0.3, label=label)
+
+
+    # From mJy to Jy
+    df["flux"] /= 1e3
+    df["fluxerr"] /= 1e3
+
+    nrows = 1
+    # 0: corrected flux & emissivity
+    fig, axes = plt.subplots(nrows=nrows, ncols=2, figsize=(12, 6), sharex=True)
+
+    ax_flux = axes[0]
+    ax_emis = axes[1]
+
+    ax_flux.set_ylabel("Flux density [Jy]", fontsize=9)
+    ax_flux.set_xlabel("Wavelength [micron]", fontsize=9)
+    ax_flux.tick_params(labelsize=8)
+    ax_flux.legend(loc="lower right", fontsize=8)
+    ax_flux.grid(True)
+    add_telluric_shading(ax_flux)
+
+    label_spec = "Observed spectrum (not shifted)"
+    ## Plot
+    ax_flux.errorbar(
+        df["wavelength"], df["flux"], yerr=df["fluxerr"],
+        fmt="o", markersize=2, color="black", label=label_spec,
+        alpha=0.7, capsize=1)
+
+    # Fitting curve
+    ## Make fitting curve
+    xeff = df["wavelength"]
+    yeff = df["flux"]
+
+    w_min, w_max = w_fit_range
+    fit_mask = (xeff >= w_min) & (xeff <= w_max)
+    xfit_eff = xeff[fit_mask]
+    yfit_eff = yeff[fit_mask]
+
+    polymodel = Polynomial1D(degree=fit_degree)
+    linfitter = LinearLSQFitter()
+    y_fit_model = linfitter(polymodel, xfit_eff, yfit_eff)
+     
+    # Use the same wavelengths as observations
+    y_fit = y_fit_model(xeff)
+
+    # Plot
+    label_fit = f"Poly fit deg={fit_degree}"
+    ax_flux.plot(
+        xeff, y_fit, color="gray", ls="dashed", lw=2, label=label_fit)
+
+    # Obs/Polynomial
+    with np.errstate(divide='ignore', invalid='ignore'):
+        emissivity = np.where(y_fit_model(xeff) != 0, yeff / y_fit_model(xeff), np.nan)
+    df["emissivity"] = emissivity
+    df[f"flux_poly{fit_degree}"] = y_fit
+
+    add_telluric_shading(ax_emis)
+    ax_emis.plot(xeff, emissivity, color="black", lw=1, label="Emissivity")
+    ax_emis.set_ylabel("Observation/Polynomial", fontsize=9)
+    ax_emis.set_xlabel("Wavelength [micron]", fontsize=9)
+    ax_emis.tick_params(labelsize=8)
+    ax_emis.grid(True)
+    ax_emis.set_ylim(0.70, 1.30)
+    ax_emis.legend(fontsize=12).get_frame().set_alpha(1.0)
+
+    ax_flux.set_ylim(0, 20)
+    ax_flux.set_xlim(7, 14)
+    
+    add_telluric_shading(ax_emis)
+    ax_flux.legend(fontsize=12).get_frame().set_alpha(1.0)
+
+    plt.tight_layout()
+    plt.show(block=False)
+    ans = input("Save figure? (y/n): ").strip().lower()
+    if ans != 'y':
+        plt.close()
+    else:
+        try:
+            plt.savefig(out_fig)
+            print(f"  Figure is saved as {out_fig}")
+            # Save spectroscopy
+            col_save = ["wavelength", "flux", "fluxerr", f"flux_poly{fit_degree}", "emissivity"]
+            df = df[col_save]
+            df.to_csv(out_res, sep=" ", index=False)
+            print(f"  Result is saved as {out_res}")
+
+        except ValueError:
+            print("Not saved. Exiting.")
+        plt.close()
+
+
 
 
 if __name__ == "__main__":
@@ -412,6 +522,9 @@ if __name__ == "__main__":
         "--full", action="store_true", default=False,
         help="Plot full results.")
     parser.add_argument(
+        "--standard", action="store_true", default=False,
+        help="Plot spectrum of standard star")
+    parser.add_argument(
         "--out_fig", type=str, default="spectrum.pdf",
         help="Output figure name")
     parser.add_argument(
@@ -428,10 +541,18 @@ if __name__ == "__main__":
     else:
         df_phot = None
     
-    if args.full:
+    # Show both object and standard
+    if args.full and (args.fi_S is not None):
         df_S = extract_1dspec(args.fi_S)
         plot_spectrum_full(
             df, df_S, df_phot=df_phot, w_fit_range=(8.2, 13), fit_degree=3, out=args.out)
+    # Show standard
+    elif args.standard:
+        plot_spectrum_std(
+            df, 
+            w_fit_range=(8.2, 13), fit_degree=3,
+            out_fig=args.out_fig, out_res=args.out_res)
+    # Show object
     else:
         plot_spectrum(
             df, df_phot=df_phot, w_fit_range=(8.2, 13), 
