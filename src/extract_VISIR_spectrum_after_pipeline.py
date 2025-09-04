@@ -1,6 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """ Extract spectrum from M....fits.
+
+Note: Emissivity spectrum is obtained by dividing observation by polynomial here, 
+which is not physical. So output file does not contain emissivity.
+Please do TPMs by yourself.
+
+Output file contains followins columns. Thus, this output can be used for Marco's TPM.
+- jd      : Julian day 
+- flux    : Flux [Jy]
+- fluxerr : Flux error [Jy]
+- code    : MPC code 
+- cflag   : flag for color term correction
+- memo    : Memo
 """
 import os 
 import sys
@@ -11,6 +23,7 @@ import matplotlib.pyplot as plt
 import astropy.io.fits as fits
 from astropy.modeling.polynomial import Polynomial1D
 from astropy.modeling.fitting import LinearLSQFitter
+from astropy.time import Time
 
 from visirana.util import telluric_features
 
@@ -31,6 +44,8 @@ def extract_1dspec(fi):
     N_hdu = len(hdu)
     hdu1 = hdu[1]
     obj = hdu[0].header["OBJECT"]
+    mjd = hdu[0].header["MJD-OBS"]
+    jd = Time(str(mjd), format='mjd', scale='utc').jd
     # hdu1: 1024 1D spectrum
     # hdu2: image 1024 x 512
     # hdu3: image 1024 x 512
@@ -82,6 +97,11 @@ def extract_1dspec(fi):
     ## Convert [m] to [micron]
     df["wavelength"] = df["wavelength"]*1e6
 
+    # TODO:Consider light-time correction, exposure time, etc.
+    df["jd"] = jd
+    df["cflag"] = 0
+    df["memo"] = f"VLT_VISIR_{obj}"
+    df["code"] = 309
     return df
 
 
@@ -387,7 +407,8 @@ def plot_spectrum(
         plt.savefig(out_fig)
         print(f"  Figure is saved as {out_fig}")
         # Save spectroscopy
-        col_save = ["wavelength", "flux", "fluxerr", f"flux_poly{fit_degree}", "emissivity", "scalefactor"]
+        col_save = ["jd", "wavelength", "flux", "fluxerr", "scalefactor", "code", "cflag", "memo"]
+        
         df = df[col_save]
         df.to_csv(out_res, sep=" ", index=False)
         print(f"  Result is saved as {out_res}")
@@ -421,6 +442,7 @@ if __name__ == "__main__":
     
     # Extract
     df = extract_1dspec(args.fi)
+    
 
     # Photometry if exists
     if args.f_phot:
